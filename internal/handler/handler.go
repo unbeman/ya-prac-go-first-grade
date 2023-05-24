@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -34,19 +36,21 @@ func GetAppHandler(authControl *controller.AuthController, pointsControl *contro
 	h.Use(middleware.RealIP)
 	h.Use(logger.Logger("router", log.New()))
 	h.Use(middleware.Recoverer)
+
 	h.Get("/ping", h.Ping())
 	h.Route("/api/user", func(router chi.Router) {
+
 		router.Post("/register", h.Register())
 		router.Post("/login", h.Login())
-		h.Group(func(r chi.Router) {
-			//h.Use(h.authorized)
-			router.Post("/orders", h.AddOrder())
-			router.Get("/orders", h.GetOrders())
-			router.Get("/balance", h.GetBalance())
-			router.Post("/balance/withdraw", h.WithdrawPoints())
-			router.Get("/withdrawals", h.GetWithdrawals())
-		})
 
+		router.Group(func(r chi.Router) {
+			r.Use(h.authorized)
+			r.Post("/orders", h.AddOrder())
+			r.Get("/orders", h.GetOrders())
+			r.Get("/balance", h.GetBalance())
+			r.Post("/balance/withdraw", h.WithdrawPoints())
+			r.Get("/withdrawals", h.GetWithdrawals())
+		})
 	})
 	return h
 }
@@ -127,21 +131,8 @@ func (h AppHandler) Login() http.HandlerFunc {
 func (h AppHandler) AddOrder() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		writer.Header().Set("Content-Type", "text/plain")
-		contentType := request.Header.Get("Content-Type") //todo: wrap
-		if contentType != "text/plain" {
-			http.Error(writer, errors2.ErrInvalidContentType.Error(), http.StatusBadRequest) // http.StatusUnsupportedMediaType
-			return
-		}
-		inputToken := request.Header.Get("Authorization")
-		user, err := h.authControl.GetUserByToken(inputToken)
-		if errors.Is(err, errors2.ErrInvalidToken) {
-			http.Error(writer, err.Error(), http.StatusUnauthorized)
-			return
-		}
-		if err != nil {
-			http.Error(writer, err.Error(), http.StatusInternalServerError)
-			return
-		}
+
+		user := h.getUserFromContext(request.Context())
 
 		orderNumber, err := io.ReadAll(request.Body)
 		if err != nil {
@@ -161,7 +152,7 @@ func (h AppHandler) AddOrder() http.HandlerFunc {
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		//todo: prolong session
+
 		if isNewOrder {
 			writer.WriteHeader(http.StatusAccepted)
 			return
@@ -172,24 +163,103 @@ func (h AppHandler) AddOrder() http.HandlerFunc {
 
 func (h AppHandler) GetOrders() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
 
+		user := h.getUserFromContext(request.Context())
+		orders, err := h.pointsControl.GetUserOrders(user)
+		if errors.Is(err, errors2.ErrNoRecords) {
+			writer.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if err != nil {
+			utils.WriteJsonError(writer, request, err, http.StatusInternalServerError)
+			return
+		}
+		jsonOrders, err := json.Marshal(orders)
+		if err != nil {
+			utils.WriteJsonError(writer, request, err, http.StatusInternalServerError)
+			return
+		}
+		writer.Write(jsonOrders)
+		writer.WriteHeader(http.StatusOK)
 	}
 }
 
 func (h AppHandler) GetBalance() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
 
+		user := h.getUserFromContext(request.Context())
+		userBalance, err := h.pointsControl.GetUserBalance(user)
+		if err != nil {
+			utils.WriteJsonError(writer, request, err, http.StatusInternalServerError)
+			return
+		}
+		jsonUserBalance, err := json.Marshal(userBalance)
+		if err != nil {
+			utils.WriteJsonError(writer, request, err, http.StatusInternalServerError)
+			return
+		}
+		writer.Write(jsonUserBalance)
+		writer.WriteHeader(http.StatusOK)
 	}
 }
 
 func (h AppHandler) WithdrawPoints() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
 
+		user := h.getUserFromContext(request.Context())
+
+		var withdrawInfo model.WithdrawnInput
+		err := render.DecodeJSON(request.Body, &withdrawInfo) //todo: use another decoder
+		if err != nil {
+			utils.WriteJsonError(writer, request, err, http.StatusBadRequest)
+			return
+		}
+
+		err = h.pointsControl.CreateWithdraw(user, withdrawInfo)
+		if errors.Is(err, errors2.ErrNotEnoughPoints) {
+			utils.WriteJsonError(writer, request, err, http.StatusPaymentRequired)
+			return
+		}
+		if errors.Is(err, errors2.ErrInvalidOrderNumberFormat) {
+			utils.WriteJsonError(writer, request, err, http.StatusUnprocessableEntity)
+			return
+		}
+		if err != nil {
+			utils.WriteJsonError(writer, request, err, http.StatusInternalServerError)
+			return
+		}
+		writer.WriteHeader(http.StatusOK)
 	}
 }
 
 func (h AppHandler) GetWithdrawals() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
 
+		user := h.getUserFromContext(request.Context())
+
+		withdrawals, err := h.pointsControl.GetUserWithdrawals(user)
+		if err != nil {
+			utils.WriteJsonError(writer, request, err, http.StatusInternalServerError)
+			return
+		}
+		if len(withdrawals) == 0 { //todo: wrap
+			writer.WriteHeader(http.StatusNoContent)
+			return
+		}
+		jsonWithdrawals, err := json.Marshal(withdrawals)
+		if err != nil {
+			utils.WriteJsonError(writer, request, err, http.StatusInternalServerError)
+			return
+		}
+		writer.Write(jsonWithdrawals)
+		writer.WriteHeader(http.StatusOK)
 	}
+}
+
+func (h AppHandler) getUserFromContext(ctx context.Context) model.User {
+	return ctx.Value(UserContextKey).(model.User) //todo: check context not nil and get value is ok
 }

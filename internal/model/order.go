@@ -3,21 +3,17 @@ package model
 import "time"
 
 type Order struct {
-	ID        uint
-	UserID    uint
-	User      User
-	Status    OrderStatus `gorm:"type:order_status;default:'NEW'"`
-	Number    string      `gorm:"unique"`
-	Accrual   float64
-	CreatedAt time.Time
+	ID        uint        `json:"-"`
+	UserID    uint        `json:"-"`
+	User      User        `json:"-"`
+	Status    OrderStatus `json:"status" gorm:"type:order_status;default:'NEW'"`
+	Number    string      `json:"order" gorm:"unique"`
+	Accrual   float64     `json:"accrual,omitempty"`
+	CreatedAt time.Time   `json:"uploaded_at"`
 }
 
-type OrderInput struct {
-	Number string
-}
-
-type OrderOutput struct {
-	Number    string    `json:"number"`
-	Status    string    `json:"status"`
-	CreatedAt time.Time `json:"uploaded_at"`
+type OrderAccrualInfo struct {
+	Number  string  `json:"order"`
+	Status  string  `json:"status"`
+	Accrual float64 `json:"accrual,omitempty"`
 }

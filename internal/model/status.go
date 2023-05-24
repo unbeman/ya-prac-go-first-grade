@@ -17,10 +17,7 @@ const (
 )
 
 func (st *OrderStatus) Scan(value interface{}) error {
-	b, ok := value.([]byte)
-	if !ok {
-		*st = OrderStatus(b)
-	}
+	*st = OrderStatus(value.(string))
 	return nil
 }
 

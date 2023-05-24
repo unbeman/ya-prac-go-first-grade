@@ -9,6 +9,7 @@ require (
 	github.com/go-chi/render v1.0.2
 	github.com/sirupsen/logrus v1.9.2
 	golang.org/x/crypto v0.9.0
+	golang.org/x/time v0.3.0
 	gorm.io/driver/postgres v1.5.0
 	gorm.io/gorm v1.25.0
 )
