@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"gorm.io/gorm"
-	"strings"
 	"time"
 
 	"github.com/unbeman/ya-prac-go-first-grade/internal/app-errors"
@@ -37,17 +36,16 @@ func (c AuthController) CreateUser(userInput model.UserInput) (user model.User, 
 	}
 
 	result := c.db.Conn.Create(&user)
-	if result.Error != nil && strings.Contains(result.Error.Error(), "duplicate key value violates unique") {
+	if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
 		err = fmt.Errorf("%w: user with login (%v)", app_errors.ErrAlreadyExists, user.Login)
 		return
 	} else if result.Error != nil {
-		err = fmt.Errorf("%w: %w", app_errors.ErrDb, result.Error)
+		err = fmt.Errorf("%w: %v", app_errors.ErrDb, result.Error)
 		return
 	}
 	return
 }
 
-// TODO: transactions
 func (c AuthController) GetUser(userInput model.UserInput) (user model.User, err error) {
 	result := c.db.Conn.First(&user, "login = ?", userInput.Login)
 	if result.Error != nil {
@@ -73,7 +71,7 @@ func (c AuthController) CreateSession(user model.User) (session model.Session, e
 	}
 	result := c.db.Conn.Create(&session)
 	if result.Error != nil {
-		err = fmt.Errorf("%w: %w", app_errors.ErrDb, result.Error)
+		err = fmt.Errorf("%w: %v", app_errors.ErrDb, result.Error)
 		return
 	}
 	return
