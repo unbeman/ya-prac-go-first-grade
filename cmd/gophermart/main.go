@@ -6,10 +6,10 @@ import (
 	"os/signal"
 	"syscall"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/unbeman/ya-prac-go-first-grade/internal/app"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/logging"
-
-	log "github.com/sirupsen/logrus"
 )
 
 func main() {

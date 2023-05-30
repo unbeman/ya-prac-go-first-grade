@@ -1,9 +1,9 @@
 package logging
 
 import (
-	"github.com/unbeman/ya-prac-go-first-grade/internal/app"
-
 	log "github.com/sirupsen/logrus"
+
+	"github.com/unbeman/ya-prac-go-first-grade/internal/app"
 )
 
 const (

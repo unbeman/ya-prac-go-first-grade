@@ -10,8 +10,8 @@ import (
 	"golang.org/x/time/rate"
 
 	log "github.com/sirupsen/logrus"
-	app_errors "github.com/unbeman/ya-prac-go-first-grade/internal/app-errors"
 
+	errors2 "github.com/unbeman/ya-prac-go-first-grade/internal/app-errors"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
 )
 
@@ -71,12 +71,12 @@ func (ac *AccrualConnection) GetOrderAccrual(ctx context.Context, orderNumber st
 		}
 		return orderInfo, nil
 	case http.StatusNoContent:
-		err = app_errors.ErrNoAccrualInfo
+		err = errors2.ErrNoAccrualInfo
 	case http.StatusTooManyRequests: //не воспроизводится
 		request.Header.Get("Retry-After")
 		//todo: go retry
 	case http.StatusInternalServerError:
-		err = app_errors.ErrNoAccrualInfo //todo another err
+		err = errors2.ErrNoAccrualInfo //todo another err
 	}
 	return
 }

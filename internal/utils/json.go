@@ -3,9 +3,9 @@ package utils
 import (
 	"net/http"
 
-	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
-
 	"github.com/go-chi/render"
+
+	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
 )
 
 func WriteJSONError(writer http.ResponseWriter, request *http.Request, err error, httpCode int) {

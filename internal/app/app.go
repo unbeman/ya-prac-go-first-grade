@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	log "github.com/sirupsen/logrus"
+
 	"github.com/unbeman/ya-prac-go-first-grade/internal/accrual"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/controller"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/handler"

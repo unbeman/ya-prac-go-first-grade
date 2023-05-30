@@ -6,11 +6,11 @@ import (
 	"gorm.io/gorm"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/unbeman/ya-prac-go-first-grade/internal/app-errors"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/utils"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type AuthController struct {
