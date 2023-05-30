@@ -2,8 +2,7 @@ package logging
 
 import (
 	log "github.com/sirupsen/logrus"
-
-	"github.com/unbeman/ya-prac-go-first-grade/internal/app"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/config"
 )
 
 const (
@@ -11,7 +10,7 @@ const (
 	LogInfo  = "info"
 )
 
-func InitLogger(cfg app.LoggerConfig) {
+func InitLogger(cfg config.LoggerConfig) {
 	switch cfg.Level {
 	case LogInfo:
 		log.SetLevel(log.InfoLevel)

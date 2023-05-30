@@ -10,18 +10,10 @@ import (
 	"golang.org/x/time/rate"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/config"
 
 	errors2 "github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
-)
-
-//todo: понятное название пакета
-
-// todo: move to config
-const (
-	ClientTimeoutDefault  = 5 * time.Second
-	RequestTimeoutDefault = 2 * time.Second
-	RateLimitDefault      = 60
 )
 
 type AccrualConnection struct {
@@ -31,13 +23,13 @@ type AccrualConnection struct {
 	rateLimiter    *rate.Limiter
 }
 
-func NewAccrualConnection(addr string) *AccrualConnection {
-	cli := http.Client{Timeout: ClientTimeoutDefault}
-	rl := rate.NewLimiter(rate.Every(1*time.Minute), RateLimitDefault) //не больше rateLimit запросов в минуту
+func NewAccrualConnection(cfg config.AccrualConnConfig) *AccrualConnection {
+	cli := http.Client{Timeout: cfg.ClientTimeout}
+	rl := rate.NewLimiter(rate.Every(cfg.RateLimit), cfg.RateTokensNumber) //не больше rateLimit запросов в минуту
 	return &AccrualConnection{
 		client:         cli,
-		address:        addr,
-		requestTimeout: RequestTimeoutDefault,
+		address:        cfg.ServerAddress,
+		requestTimeout: cfg.RequestTimeout,
 		rateLimiter:    rl,
 	}
 }

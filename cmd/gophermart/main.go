@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/config"
 
 	"github.com/unbeman/ya-prac-go-first-grade/internal/app"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/logging"
@@ -18,17 +19,19 @@ func main() {
 		cancel()
 	}()
 
-	cfg, err := app.GetConfig()
+	cfg, err := config.GetConfig()
 	if err != nil {
 		log.Error("Can't get config:", err)
 		return
 	}
 
 	logging.InitLogger(cfg.Logger)
-	log.Info(cfg)
+
+	log.Infof("Got config: %+v", cfg)
+
 	appl, err := app.GetApplication(cfg)
 	if err != nil {
-		log.Error(err)
+		log.Error("Can't ini application, reason: ", err)
 		return
 	}
 

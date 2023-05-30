@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/config"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/database"
 
 	"github.com/unbeman/ya-prac-go-first-grade/internal/accrual"
@@ -18,13 +19,13 @@ type application struct {
 	pointsControl *controller.PointsController
 }
 
-func GetApplication(cfg ApplicationConfig) (*application, error) { //TODO: sync once
+func GetApplication(cfg config.ApplicationConfig) (*application, error) { //TODO: sync once
 	db, err := database.GetDatabase(cfg.DatabaseURI) //todo: interface
 	if err != nil {
 		return nil, err
 	}
-	accConn := accrual.NewAccrualConnection(cfg.AccrualServerAddress)
-	authControl := controller.GetAuthController(db)
+	accConn := accrual.NewAccrualConnection(cfg.AccrualConn)
+	authControl := controller.GetAuthController(db, cfg.Auth)
 	pointsControl := controller.GetPointsController(db, accConn)
 	hndlr := handler.GetAppHandler(authControl, pointsControl)
 	return &application{

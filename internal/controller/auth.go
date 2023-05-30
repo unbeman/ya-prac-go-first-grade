@@ -4,17 +4,19 @@ import (
 	"time"
 
 	"github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/config"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/database"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/utils"
 )
 
 type AuthController struct {
-	db *database.PG
+	db            *database.PG
+	tokenLifeTime time.Duration
 }
 
-func GetAuthController(db *database.PG) *AuthController {
-	return &AuthController{db: db}
+func GetAuthController(db *database.PG, cfg config.AuthConfig) *AuthController {
+	return &AuthController{db: db, tokenLifeTime: cfg.TokenLifeTime}
 }
 
 func (c AuthController) CreateUser(userInput model.UserInput) (user *model.User, err error) {
@@ -49,7 +51,7 @@ func (c AuthController) GetUser(userInput model.UserInput) (user *model.User, er
 func (c AuthController) CreateSession(user *model.User) (session *model.Session, err error) {
 	token := utils.GenerateToken()
 	created := time.Now()
-	expired := created.Add(1 * time.Hour) //todo: default const
+	expired := created.Add(c.tokenLifeTime)
 	session = &model.Session{
 		User:      *user,
 		Token:     token,
