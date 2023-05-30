@@ -73,22 +73,22 @@ func (h AppHandler) Register() http.HandlerFunc {
 		var userInfo model.UserInput
 		err := render.DecodeJSON(request.Body, &userInfo) //todo: use another decoder
 		if err != nil {
-			utils.WriteJsonError(writer, request, err, http.StatusBadRequest)
+			utils.WriteJSONError(writer, request, err, http.StatusBadRequest)
 			return
 		}
 
 		user, err := h.authControl.CreateUser(userInfo)
 		if errors.Is(err, errors2.ErrAlreadyExists) {
-			utils.WriteJsonError(writer, request, err, http.StatusConflict)
+			utils.WriteJSONError(writer, request, err, http.StatusConflict)
 			return
 		}
 		if err != nil {
-			utils.WriteJsonError(writer, request, err, http.StatusInternalServerError)
+			utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
 			return
 		}
 		session, err := h.authControl.CreateSession(user)
 		if err != nil {
-			utils.WriteJsonError(writer, request, err, http.StatusInternalServerError)
+			utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
 			return
 		}
 		writer.Header().Set("Authorization", session.Token)
@@ -103,24 +103,24 @@ func (h AppHandler) Login() http.HandlerFunc {
 		var userInfo model.UserInput
 		err := render.DecodeJSON(request.Body, &userInfo) //todo: use another decoder
 		if err != nil {
-			utils.WriteJsonError(writer, request, err, http.StatusBadRequest)
+			utils.WriteJSONError(writer, request, err, http.StatusBadRequest)
 			return
 		}
 
 		user, err := h.authControl.GetUser(userInfo)
 		if errors.Is(err, errors2.ErrInvalidUserCredentials) {
-			utils.WriteJsonError(writer, request, err, http.StatusUnauthorized)
+			utils.WriteJSONError(writer, request, err, http.StatusUnauthorized)
 			return
 		}
 		if err != nil {
-			utils.WriteJsonError(writer, request, err, http.StatusInternalServerError)
+			utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
 			return
 		}
 		log.Debug(user)
 
 		session, err := h.authControl.CreateSession(user)
 		if err != nil {
-			utils.WriteJsonError(writer, request, err, http.StatusInternalServerError)
+			utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
 			return
 		}
 
@@ -172,12 +172,12 @@ func (h AppHandler) GetOrders() http.HandlerFunc {
 			return
 		}
 		if err != nil {
-			utils.WriteJsonError(writer, request, err, http.StatusInternalServerError)
+			utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
 			return
 		}
 		jsonOrders, err := json.Marshal(orders)
 		if err != nil {
-			utils.WriteJsonError(writer, request, err, http.StatusInternalServerError)
+			utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
 			return
 		}
 		log.Info("GetOrders result", string(jsonOrders))
@@ -193,12 +193,12 @@ func (h AppHandler) GetBalance() http.HandlerFunc {
 		user := h.getUserFromContext(request.Context())
 		userBalance, err := h.pointsControl.GetUserBalance(user)
 		if err != nil {
-			utils.WriteJsonError(writer, request, err, http.StatusInternalServerError)
+			utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
 			return
 		}
 		jsonUserBalance, err := json.Marshal(userBalance)
 		if err != nil {
-			utils.WriteJsonError(writer, request, err, http.StatusInternalServerError)
+			utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
 			return
 		}
 		writer.Write(jsonUserBalance)
@@ -215,21 +215,21 @@ func (h AppHandler) WithdrawPoints() http.HandlerFunc {
 		var withdrawInfo model.WithdrawnInput
 		err := render.DecodeJSON(request.Body, &withdrawInfo) //todo: use another decoder
 		if err != nil {
-			utils.WriteJsonError(writer, request, err, http.StatusBadRequest)
+			utils.WriteJSONError(writer, request, err, http.StatusBadRequest)
 			return
 		}
 
 		err = h.pointsControl.CreateWithdraw(user, withdrawInfo)
 		if errors.Is(err, errors2.ErrNotEnoughPoints) {
-			utils.WriteJsonError(writer, request, err, http.StatusPaymentRequired)
+			utils.WriteJSONError(writer, request, err, http.StatusPaymentRequired)
 			return
 		}
 		if errors.Is(err, errors2.ErrInvalidOrderNumberFormat) {
-			utils.WriteJsonError(writer, request, err, http.StatusUnprocessableEntity)
+			utils.WriteJSONError(writer, request, err, http.StatusUnprocessableEntity)
 			return
 		}
 		if err != nil {
-			utils.WriteJsonError(writer, request, err, http.StatusInternalServerError)
+			utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
 			return
 		}
 		writer.WriteHeader(http.StatusOK)
@@ -244,7 +244,7 @@ func (h AppHandler) GetWithdrawals() http.HandlerFunc {
 
 		withdrawals, err := h.pointsControl.GetUserWithdrawals(user)
 		if err != nil {
-			utils.WriteJsonError(writer, request, err, http.StatusInternalServerError)
+			utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
 			return
 		}
 		if len(withdrawals) == 0 { //todo: wrap
@@ -253,7 +253,7 @@ func (h AppHandler) GetWithdrawals() http.HandlerFunc {
 		}
 		jsonWithdrawals, err := json.Marshal(withdrawals)
 		if err != nil {
-			utils.WriteJsonError(writer, request, err, http.StatusInternalServerError)
+			utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
 			return
 		}
 		writer.Write(jsonWithdrawals)
