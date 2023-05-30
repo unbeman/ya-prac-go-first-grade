@@ -1,4 +1,4 @@
-package app_errors
+package apperrors
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ var (
 	ErrAlreadyExists          = errors.New("already exists")
 	ErrInvalidUserCredentials = errors.New("invalid login or password")
 	ErrInvalidToken           = errors.New("invalid token")
-	ErrDb                     = errors.New("database error")
+	ErrDB                     = errors.New("database error")
 	//ErrInvalidContentType       = errors.New("invalid content type")
 	ErrInvalidOrderNumberFormat = errors.New("invalid order number format")
 	ErrNoRecords                = errors.New("no records")

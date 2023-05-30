@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/unbeman/ya-prac-go-first-grade/internal/accrual"
-	errors2 "github.com/unbeman/ya-prac-go-first-grade/internal/app-errors"
+	errors2 "github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/utils"
 )
@@ -39,13 +39,13 @@ func (c PointsController) AddUserOrder(user model.User, orderNumber string) (isN
 		newOrder := model.Order{UserID: user.ID, Status: model.StatusNew, Number: orderNumber}
 		result = c.db.Conn.Create(&newOrder)
 		if result.Error != nil {
-			return false, fmt.Errorf("%w: %v", errors2.ErrDb, result.Error)
+			return false, fmt.Errorf("%w: %v", errors2.ErrDB, result.Error)
 		}
 		//c.accrual <- orderNumber
 		return true, nil
 	}
 	if result.Error != nil {
-		return false, fmt.Errorf("%w: %v", errors2.ErrDb, result.Error)
+		return false, fmt.Errorf("%w: %v", errors2.ErrDB, result.Error)
 	}
 	if existingOrder.UserID != user.ID { //заказ загружен другим пользователем
 		return false, errors2.ErrAlreadyExists
@@ -72,7 +72,7 @@ func (c PointsController) updateUserOrder(order *model.Order) error {
 		if order.Status == model.StatusProcessed {
 			var user model.User
 			user.ID = order.UserID
-			result := tx.Model(&user).Update("current_balance", gorm.Expr("current_balance + ?", order.Accrual))
+			result = tx.Model(&user).Update("current_balance", gorm.Expr("current_balance + ?", order.Accrual))
 			if result.Error != nil {
 				return result.Error
 			}
@@ -81,7 +81,7 @@ func (c PointsController) updateUserOrder(order *model.Order) error {
 	})
 
 	if err != nil {
-		return fmt.Errorf("%w: %v", errors2.ErrDb, err)
+		return fmt.Errorf("%w: %v", errors2.ErrDB, err)
 	}
 	return nil
 }
@@ -93,7 +93,7 @@ func (c PointsController) GetUserOrders(user model.User) (orders []model.Order, 
 		return
 	}
 	if result.Error != nil {
-		err = fmt.Errorf("%w: %v", errors2.ErrDb, result.Error)
+		err = fmt.Errorf("%w: %v", errors2.ErrDB, result.Error)
 	}
 	for _, order := range orders {
 		if order.Status == model.StatusProcessed || order.Status == model.StatusInvalid {
@@ -103,7 +103,6 @@ func (c PointsController) GetUserOrders(user model.User) (orders []model.Order, 
 			log.Info(err)
 		}
 	}
-
 	return
 }
 
@@ -139,7 +138,7 @@ func (c PointsController) CreateWithdraw(user model.User, withdrawInfo model.Wit
 		return err
 	}
 	if err != nil {
-		return fmt.Errorf("%w: %v", errors2.ErrDb, err)
+		return fmt.Errorf("%w: %v", errors2.ErrDB, err)
 	}
 	return nil
 }
@@ -147,7 +146,7 @@ func (c PointsController) CreateWithdraw(user model.User, withdrawInfo model.Wit
 func (c PointsController) GetUserWithdrawals(user model.User) (withdrawals []model.Withdrawal, err error) {
 	result := c.db.Conn.Find(&withdrawals, "user_id = ?", user.ID).Order("created_at ASC")
 	if result.Error != nil {
-		err = fmt.Errorf("%w: %v", errors2.ErrDb, err)
+		err = fmt.Errorf("%w: %v", errors2.ErrDB, err)
 		return
 	}
 	return

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	errors2 "github.com/unbeman/ya-prac-go-first-grade/internal/app-errors"
+	errors2 "github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
 )
 
 type ContextKey string

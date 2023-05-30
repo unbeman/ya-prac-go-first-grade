@@ -13,7 +13,7 @@ import (
 	"github.com/go-chi/render"
 	log "github.com/sirupsen/logrus"
 
-	errors2 "github.com/unbeman/ya-prac-go-first-grade/internal/app-errors"
+	errors2 "github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/controller"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/utils"

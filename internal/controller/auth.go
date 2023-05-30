@@ -8,7 +8,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/unbeman/ya-prac-go-first-grade/internal/app-errors"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/utils"
 )
@@ -37,10 +37,10 @@ func (c AuthController) CreateUser(userInput model.UserInput) (user model.User, 
 
 	result := c.db.Conn.Create(&user)
 	if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
-		err = fmt.Errorf("%w: user with login (%v)", app_errors.ErrAlreadyExists, user.Login)
+		err = fmt.Errorf("%w: user with login (%v)", apperrors.ErrAlreadyExists, user.Login)
 		return
 	} else if result.Error != nil {
-		err = fmt.Errorf("%w: %v", app_errors.ErrDb, result.Error)
+		err = fmt.Errorf("%w: %v", apperrors.ErrDB, result.Error)
 		return
 	}
 	return
@@ -49,11 +49,11 @@ func (c AuthController) CreateUser(userInput model.UserInput) (user model.User, 
 func (c AuthController) GetUser(userInput model.UserInput) (user model.User, err error) {
 	result := c.db.Conn.First(&user, "login = ?", userInput.Login)
 	if result.Error != nil {
-		return user, app_errors.ErrInvalidUserCredentials
+		return user, apperrors.ErrInvalidUserCredentials
 	}
 	err = utils.CheckPassword(user.HashPassword, userInput.Password)
 	if err != nil {
-		err = app_errors.ErrInvalidUserCredentials
+		err = apperrors.ErrInvalidUserCredentials
 		return
 	}
 	return
@@ -71,7 +71,7 @@ func (c AuthController) CreateSession(user model.User) (session model.Session, e
 	}
 	result := c.db.Conn.Create(&session)
 	if result.Error != nil {
-		err = fmt.Errorf("%w: %v", app_errors.ErrDb, result.Error)
+		err = fmt.Errorf("%w: %v", apperrors.ErrDB, result.Error)
 		return
 	}
 	return
@@ -84,11 +84,11 @@ func (c AuthController) GetUserByToken(token string) (user model.User, err error
 		time.Now(),
 	).First(&user)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		err = app_errors.ErrInvalidToken
+		err = apperrors.ErrInvalidToken
 		return
 	}
 	if result.Error != nil {
-		err = fmt.Errorf("%w: %v", app_errors.ErrDb, result.Error)
+		err = fmt.Errorf("%w: %v", apperrors.ErrDB, result.Error)
 		return
 	}
 	log.Debug(user)
