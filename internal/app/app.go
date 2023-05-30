@@ -6,11 +6,11 @@ import (
 	"sync"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/database"
 
 	"github.com/unbeman/ya-prac-go-first-grade/internal/accrual"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/controller"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/handler"
-	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
 )
 
 type application struct {
@@ -19,7 +19,7 @@ type application struct {
 }
 
 func GetApplication(cfg ApplicationConfig) (*application, error) { //TODO: sync once
-	db, err := model.GetDatabase(cfg.DatabaseURI)
+	db, err := database.GetDatabase(cfg.DatabaseURI) //todo: interface
 	if err != nil {
 		return nil, err
 	}

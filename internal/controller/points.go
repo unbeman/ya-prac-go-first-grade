@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/database"
 
 	"github.com/unbeman/ya-prac-go-first-grade/internal/accrual"
 	errors2 "github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
@@ -13,11 +14,11 @@ import (
 )
 
 type PointsController struct {
-	db                *model.PG
+	db                *database.PG
 	accrualConnection *accrual.AccrualConnection
 }
 
-func GetPointsController(db *model.PG, accConn *accrual.AccrualConnection) *PointsController {
+func GetPointsController(db *database.PG, accConn *accrual.AccrualConnection) *PointsController {
 	return &PointsController{db: db, accrualConnection: accConn}
 }
 

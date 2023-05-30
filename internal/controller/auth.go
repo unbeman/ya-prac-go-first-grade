@@ -4,15 +4,16 @@ import (
 	"time"
 
 	"github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/database"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/utils"
 )
 
 type AuthController struct {
-	db *model.PG
+	db *database.PG
 }
 
-func GetAuthController(db *model.PG) *AuthController {
+func GetAuthController(db *database.PG) *AuthController {
 	return &AuthController{db: db}
 }
 
