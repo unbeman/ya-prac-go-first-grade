@@ -1,4 +1,4 @@
-package accrual
+package connection
 
 import (
 	"context"
@@ -25,7 +25,7 @@ type AccrualConnection struct {
 
 func NewAccrualConnection(cfg config.AccrualConnConfig) *AccrualConnection {
 	cli := http.Client{Timeout: cfg.ClientTimeout}
-	rl := rate.NewLimiter(rate.Every(cfg.RateLimit), cfg.RateTokensNumber) //не больше rateLimit запросов в минуту
+	rl := rate.NewLimiter(rate.Every(cfg.RateLimit), cfg.RateTokensNumber) //не больше RateTokensNumber запросов в RateLimit
 	return &AccrualConnection{
 		client:         cli,
 		address:        cfg.ServerAddress,

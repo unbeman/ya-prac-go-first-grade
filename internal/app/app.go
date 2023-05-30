@@ -9,7 +9,7 @@ import (
 	"github.com/unbeman/ya-prac-go-first-grade/internal/config"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/database"
 
-	"github.com/unbeman/ya-prac-go-first-grade/internal/accrual"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/connection"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/controller"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/handler"
 )
@@ -24,7 +24,7 @@ func GetApplication(cfg config.ApplicationConfig) (*application, error) { //TODO
 	if err != nil {
 		return nil, err
 	}
-	accConn := accrual.NewAccrualConnection(cfg.AccrualConn)
+	accConn := connection.NewAccrualConnection(cfg.AccrualConn)
 	authControl := controller.GetAuthController(db, cfg.Auth)
 	pointsControl := controller.GetPointsController(db, accConn)
 	hndlr := handler.GetAppHandler(authControl, pointsControl)

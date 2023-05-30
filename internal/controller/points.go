@@ -7,18 +7,18 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/database"
 
-	"github.com/unbeman/ya-prac-go-first-grade/internal/accrual"
 	errors2 "github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/connection"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/utils"
 )
 
 type PointsController struct {
 	db                *database.PG
-	accrualConnection *accrual.AccrualConnection
+	accrualConnection *connection.AccrualConnection
 }
 
-func GetPointsController(db *database.PG, accConn *accrual.AccrualConnection) *PointsController {
+func GetPointsController(db *database.PG, accConn *connection.AccrualConnection) *PointsController {
 	return &PointsController{db: db, accrualConnection: accConn}
 }
 
