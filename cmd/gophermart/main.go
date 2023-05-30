@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/unbeman/ya-prac-go-first-grade/internal/app"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/logging"
@@ -29,6 +32,23 @@ func main() {
 		return
 	}
 
+	go func() {
+		exit := make(chan os.Signal, 1)
+		signal.Notify(
+			exit,
+			os.Interrupt,
+			syscall.SIGTERM,
+			syscall.SIGINT,
+			syscall.SIGQUIT,
+		)
+
+		for {
+			sig := <-exit
+			log.Infof("Got signal '%v'", sig)
+			appl.Shutdown(ctx)
+		}
+	}()
+
 	appl.Run()
-	appl.Shutdown(ctx)
+	//appl.Shutdown(ctx)
 }

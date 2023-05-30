@@ -5,15 +5,16 @@ import (
 	"net/http"
 	"sync"
 
+	log "github.com/sirupsen/logrus"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/accrual"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/controller"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/handler"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type application struct {
-	server http.Server
+	server        http.Server
+	pointsControl *controller.PointsController
 }
 
 func GetApplication(cfg ApplicationConfig) (*application, error) { //TODO: sync once
@@ -21,20 +22,24 @@ func GetApplication(cfg ApplicationConfig) (*application, error) { //TODO: sync 
 	if err != nil {
 		return nil, err
 	}
+	accConn := accrual.NewAccrualConnection(cfg.AccrualServerAddress)
 	authControl := controller.GetAuthController(db)
-	pointsControl := controller.GetPointsController(db)
+	orderChan := make(chan string)
+	pointsControl := controller.GetPointsController(db, orderChan, accConn)
 	hndlr := handler.GetAppHandler(authControl, pointsControl)
 	return &application{
-		server: http.Server{Addr: cfg.ServerAddress, Handler: hndlr},
+		server:        http.Server{Addr: cfg.ServerAddress, Handler: hndlr},
+		pointsControl: pointsControl,
 	}, nil
 }
 
 func (a *application) Run() {
 	var wg sync.WaitGroup
+
 	wg.Add(1)
 	go func() {
 		err := a.server.ListenAndServe()
-		log.Error(err)
+		log.Info(err)
 		wg.Done()
 	}()
 	log.Info("Http server started")
@@ -43,5 +48,4 @@ func (a *application) Run() {
 
 func (a *application) Shutdown(ctx context.Context) {
 	a.server.Shutdown(ctx)
-	log.Info("Http server closed")
 }

@@ -13,4 +13,5 @@ var (
 	ErrInvalidOrderNumberFormat = errors.New("invalid order number format")
 	ErrNoRecords                = errors.New("no records")
 	ErrNotEnoughPoints          = errors.New("not enough points")
+	ErrNoAccrualInfo            = errors.New("no accrual info")
 )

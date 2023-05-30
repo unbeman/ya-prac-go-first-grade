@@ -1,11 +1,13 @@
 package controller
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"gorm.io/gorm"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/accrual"
 	errors2 "github.com/unbeman/ya-prac-go-first-grade/internal/app-errors"
 
 	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
@@ -13,11 +15,12 @@ import (
 )
 
 type PointsController struct {
-	db *model.PG
+	db                *model.PG
+	accrualConnection *accrual.AccrualConnection
 }
 
-func GetPointsController(db *model.PG) *PointsController {
-	return &PointsController{db: db}
+func GetPointsController(db *model.PG, accrual chan string, accConn *accrual.AccrualConnection) *PointsController {
+	return &PointsController{db: db, accrualConnection: accConn}
 }
 
 func (c PointsController) Ping() bool {
@@ -33,11 +36,12 @@ func (c PointsController) AddUserOrder(user model.User, orderNumber string) (isN
 	var existingOrder model.Order
 	result := c.db.Conn.First(&existingOrder, "number = ?", orderNumber)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		newOrder := model.Order{User: user, Status: model.StatusNew, Number: orderNumber}
+		newOrder := model.Order{UserID: user.ID, Status: model.StatusNew, Number: orderNumber}
 		result = c.db.Conn.Create(&newOrder)
 		if result.Error != nil {
 			return false, fmt.Errorf("%w: %v", errors2.ErrDb, result.Error)
 		}
+		//c.accrual <- orderNumber
 		return true, nil
 	}
 	if result.Error != nil {
@@ -49,6 +53,39 @@ func (c PointsController) AddUserOrder(user model.User, orderNumber string) (isN
 	return false, nil
 }
 
+func (c PointsController) updateUserOrder(order *model.Order) error {
+	orderAccrualInfo, err := c.accrualConnection.GetOrderAccrual(context.TODO(), order.Number)
+	if err != nil {
+		return err
+	}
+	log.Info(orderAccrualInfo)
+	if order.Status != orderAccrualInfo.Status {
+		order.Status = orderAccrualInfo.Status
+		order.Accrual = orderAccrualInfo.Accrual
+	}
+
+	err = c.db.Conn.Transaction(func(tx *gorm.DB) (txErr error) {
+		result := tx.Save(&order)
+		if result.Error != nil {
+			return result.Error
+		}
+		if order.Status == model.StatusProcessed {
+			var user model.User
+			user.ID = order.UserID
+			result := tx.Model(&user).Update("current_balance", gorm.Expr("current_balance + ?", order.Accrual))
+			if result.Error != nil {
+				return result.Error
+			}
+		}
+		return
+	})
+
+	if err != nil {
+		return fmt.Errorf("%w: %v", errors2.ErrDb, err)
+	}
+	return nil
+}
+
 func (c PointsController) GetUserOrders(user model.User) (orders []model.Order, err error) {
 	result := c.db.Conn.Find(&orders, "user_id = ?", user.ID).Order("created_at ASC")
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -58,8 +95,15 @@ func (c PointsController) GetUserOrders(user model.User) (orders []model.Order, 
 	if result.Error != nil {
 		err = fmt.Errorf("%w: %v", errors2.ErrDb, result.Error)
 	}
-	log.Debugf("%+v", orders[0])
-	log.Debugf("status? (%v)", orders[0].Status)
+	for _, order := range orders {
+		if order.Status == model.StatusProcessed || order.Status == model.StatusInvalid {
+			continue
+		}
+		if updErr := c.updateUserOrder(&order); updErr != nil { //todo: async
+			log.Info(err)
+		}
+	}
+
 	return
 }
 
@@ -74,7 +118,6 @@ func (c PointsController) CreateWithdraw(user model.User, withdrawInfo model.Wit
 	if err != nil {
 		return errors2.ErrInvalidOrderNumberFormat
 	}
-	//todo: check order and withdraw already exists?
 	err = c.db.Conn.Transaction(func(tx *gorm.DB) (txErr error) {
 		result := tx.Where("id = ? and current_balance >= ?", user.ID, withdrawInfo.Sum).First(&user)
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {

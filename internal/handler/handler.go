@@ -180,6 +180,7 @@ func (h AppHandler) GetOrders() http.HandlerFunc {
 			utils.WriteJsonError(writer, request, err, http.StatusInternalServerError)
 			return
 		}
+		log.Info("GetOrders result", string(jsonOrders))
 		writer.Write(jsonOrders)
 		writer.WriteHeader(http.StatusOK)
 	}

@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	ServerAddressDefault        = "127.0.0.1:8080"
+	ServerAddressDefault        = "127.0.0.1:8090"
 	DatabaseURIDefault          = "postgresql://postgres:1211@localhost:5432/fgrad"
-	AccrualServerAddressDefault = "127.0.0.1:8081"
+	AccrualServerAddressDefault = "127.0.0.1:8080"
 	LogLevelDefault             = "info"
 )
 
