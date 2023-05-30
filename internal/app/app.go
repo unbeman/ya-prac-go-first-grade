@@ -25,8 +25,7 @@ func GetApplication(cfg ApplicationConfig) (*application, error) { //TODO: sync 
 	}
 	accConn := accrual.NewAccrualConnection(cfg.AccrualServerAddress)
 	authControl := controller.GetAuthController(db)
-	orderChan := make(chan string)
-	pointsControl := controller.GetPointsController(db, orderChan, accConn)
+	pointsControl := controller.GetPointsController(db, accConn)
 	hndlr := handler.GetAppHandler(authControl, pointsControl)
 	return &application{
 		server:        http.Server{Addr: cfg.ServerAddress, Handler: hndlr},

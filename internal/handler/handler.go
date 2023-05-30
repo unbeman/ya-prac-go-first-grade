@@ -260,6 +260,6 @@ func (h AppHandler) GetWithdrawals() http.HandlerFunc {
 	}
 }
 
-func (h AppHandler) getUserFromContext(ctx context.Context) model.User {
-	return ctx.Value(UserContextKey).(model.User) //todo: check context not nil and get value is ok
+func (h AppHandler) getUserFromContext(ctx context.Context) *model.User {
+	return ctx.Value(UserContextKey).(*model.User) //todo: check context not nil and get value is ok
 }
