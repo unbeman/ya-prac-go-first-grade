@@ -47,7 +47,7 @@ func (ac *AccrualConnection) GetOrderAccrual(ctx context.Context, orderNumber st
 	ac.rateLimiter.Wait(ctx)
 	ctx2, cancel := context.WithTimeout(ctx, ac.requestTimeout)
 	defer cancel()
-	url := fmt.Sprintf("http://%v/api/orders/%v", ac.address, orderNumber)
+	url := fmt.Sprintf("%v/api/orders/%v", ac.address, orderNumber)
 	request, err := http.NewRequestWithContext(ctx2, http.MethodGet, url, nil)
 	if err != nil {
 		log.Error(err)
