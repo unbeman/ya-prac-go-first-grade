@@ -8,7 +8,9 @@ import (
 	errors2 "github.com/unbeman/ya-prac-go-first-grade/internal/app-errors"
 )
 
-const UserContextKey = "user"
+type ContextKey string
+
+const UserContextKey ContextKey = "user"
 
 func (h AppHandler) authorized(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
