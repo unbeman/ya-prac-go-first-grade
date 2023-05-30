@@ -25,7 +25,7 @@ func main() {
 	}
 
 	logging.InitLogger(cfg.Logger)
-
+	log.Info(cfg)
 	appl, err := app.GetApplication(cfg)
 	if err != nil {
 		log.Error(err)

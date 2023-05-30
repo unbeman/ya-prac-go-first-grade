@@ -45,11 +45,16 @@ func (cfg *ApplicationConfig) parseFlags() error {
 }
 
 func GetConfig() (ApplicationConfig, error) {
-	cfg := ApplicationConfig{}
-	if err := cfg.parseEnv(); err != nil {
-		return cfg, err
+	cfg := ApplicationConfig{
+		ServerAddress:        ServerAddressDefault,
+		DatabaseURI:          DatabaseURIDefault,
+		AccrualServerAddress: AccrualServerAddressDefault,
+		Logger:               LoggerConfig{Level: LogLevelDefault},
 	}
 	if err := cfg.parseFlags(); err != nil {
+		return cfg, err
+	}
+	if err := cfg.parseEnv(); err != nil {
 		return cfg, err
 	}
 	return cfg, nil
