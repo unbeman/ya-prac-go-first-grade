@@ -5,25 +5,27 @@ import (
 	"errors"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/unbeman/ya-prac-go-first-grade/internal/database"
 
 	errors2 "github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/connection"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/database"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/utils"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/worker"
 )
 
 type PointsController struct {
 	db                *database.PG
 	accrualConnection *connection.AccrualConnection
+	wp                *worker.WorkersPool
 }
 
-func GetPointsController(db *database.PG, accConn *connection.AccrualConnection) *PointsController {
-	return &PointsController{db: db, accrualConnection: accConn}
+func GetPointsController(db *database.PG, accConn *connection.AccrualConnection, wp *worker.WorkersPool) *PointsController {
+	return &PointsController{db: db, accrualConnection: accConn, wp: wp}
 }
 
 func (c PointsController) Ping() bool {
-	return c.db.Ping()
+	return true
 }
 
 func (c PointsController) AddUserOrder(user *model.User, orderNumber string) (isNewOrder bool, err error) {
@@ -49,43 +51,55 @@ func (c PointsController) AddUserOrder(user *model.User, orderNumber string) (is
 	return false, nil
 }
 
-func (c PointsController) updateUserOrder(order *model.Order) error {
+func (c PointsController) updateUserOrder(order model.Order) (model.Order, error) {
 	orderAccrualInfo, err := c.accrualConnection.GetOrderAccrual(context.TODO(), order.Number)
 	if err != nil {
-		return err
+		return order, err
 	}
 	log.Debug("updateUserOrder orderAccrualInfo: ", orderAccrualInfo)
 	if order.Status != orderAccrualInfo.Status {
 		order.Status = orderAccrualInfo.Status
 		order.Accrual = orderAccrualInfo.Accrual
-		err = c.db.UpdateUserBalanceAndOrder(order)
+		err = c.db.UpdateUserBalanceAndOrder(&order)
 	}
-	return err
+	return order, err
+}
+
+func (c PointsController) UpdateUserOrders(user *model.User) error {
+	notReadyOrders, err := c.db.GetNotReadyOrders(user.ID)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	errInfo := make(chan error, len(notReadyOrders))
+	for _, order := range notReadyOrders {
+		updateOrder := &worker.Task{Order: order, DoFunc: c.updateUserOrder, OutputErr: errInfo}
+		c.wp.AddTask(updateOrder)
+	}
+	for idx := 0; idx < len(notReadyOrders); idx++ {
+		if orderErr := <-errInfo; orderErr != nil {
+			log.Error(orderErr)
+		}
+	}
+	return nil
 }
 
 func (c PointsController) GetUserOrders(user *model.User) (orders []model.Order, err error) {
-	orders, err = c.db.GetUserOrders(user.ID)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-	for _, order := range orders {
-		if order.Status == model.StatusProcessed || order.Status == model.StatusInvalid {
-			continue
-		}
-		if updErr := c.updateUserOrder(&order); updErr != nil { //todo: async
-			log.Error("GetUserOrders: ", updErr)
-			if errors.Is(updErr, errors2.ErrDB) {
-				err = updErr
-				return
-			} //ignore accrual conn error
-		}
-	}
-	return
+	//if err = c.UpdateUserOrders(user); err != nil {
+	//	return
+	//}
+	return c.db.GetUserOrders(user.ID)
 }
 
 func (c PointsController) GetUserBalance(user *model.User) (balance model.UserBalanceOutput, err error) {
-	//todo: проверить заказы
+	//if err = c.UpdateUserOrders(user); err != nil {
+	//	return
+	//}
+	user, err = c.db.GetUserByID(user.ID)
+	if err != nil {
+		return
+	}
 	balance.Withdrawn = user.Withdrawn
 	balance.Current = user.CurrentBalance
 	return
@@ -96,7 +110,9 @@ func (c PointsController) CreateWithdraw(user *model.User, withdrawInfo model.Wi
 	if err != nil {
 		return errors2.ErrInvalidOrderNumberFormat
 	}
-	//todo: проверить заказы
+	//if err = c.UpdateUserOrders(user); err != nil {
+	//	return err
+	//}
 	err = c.db.CreateWithdraw(user, withdrawInfo)
 	return err
 }

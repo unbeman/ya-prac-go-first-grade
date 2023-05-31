@@ -42,13 +42,16 @@ func GetAppHandler(authControl *controller.AuthController, pointsControl *contro
 		router.Post("/register", h.Register())
 		router.Post("/login", h.Login())
 
-		router.Group(func(r chi.Router) {
-			r.Use(h.authorized)
-			r.Post("/orders", h.AddOrder())
-			r.Get("/orders", h.GetOrders())
-			r.Get("/balance", h.GetBalance())
-			r.Post("/balance/withdraw", h.WithdrawPoints())
-			r.Get("/withdrawals", h.GetWithdrawals())
+		router.Group(func(ra chi.Router) {
+			ra.Use(h.authorized)
+			ra.Post("/orders", h.AddOrder())
+			ra.Get("/withdrawals", h.GetWithdrawals())
+			ra.Group(func(ru chi.Router) {
+				ru.Use(h.updOrdersInfo)
+				ru.Get("/orders", h.GetOrders())
+				ru.Get("/balance", h.GetBalance())
+				ru.Post("/balance/withdraw", h.WithdrawPoints())
+			})
 		})
 	})
 	return h

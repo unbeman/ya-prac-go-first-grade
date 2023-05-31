@@ -28,3 +28,16 @@ func (h AppHandler) authorized(next http.Handler) http.Handler {
 		next.ServeHTTP(writer, request.WithContext(ctx))
 	})
 }
+
+func (h AppHandler) updOrdersInfo(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		user := h.getUserFromContext(request.Context())
+		err := h.pointsControl.UpdateUserOrders(user)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		next.ServeHTTP(writer, request)
+
+	})
+}

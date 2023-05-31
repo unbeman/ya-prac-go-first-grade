@@ -51,7 +51,7 @@ func (ac *AccrualConnection) GetOrderAccrual(ctx context.Context, orderNumber st
 		log.Error(err)
 		return
 	}
-	log.Infof("GetOrderAccrual: recieved status %v, request GET: %v", response.StatusCode, url)
+	log.Debugf("GetOrderAccrual: recieved status %v, request GET: %v", response.StatusCode, url)
 	switch response.StatusCode {
 	case http.StatusOK:
 		defer response.Body.Close()
