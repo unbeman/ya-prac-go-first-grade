@@ -21,18 +21,6 @@ func (t *Task) Do() {
 	t.OutputErr <- err
 }
 
-type Worker struct {
-	name string
-}
-
-func (w *Worker) Run() {
-	for {
-		select {
-		default:
-		}
-	}
-}
-
 type WorkersPool struct {
 	wokersCount int
 	tasks       chan *Task
@@ -54,17 +42,10 @@ func (wp *WorkersPool) Run() {
 		go func(idx int, tasks chan *Task) {
 			log.Infof("worker %d started", idx)
 			defer wp.waitGroup.Done()
-			for {
-				select {
-				case task, ok := <-tasks:
-					if !ok {
-						log.Infof("worker %d: finished", idx)
-						return
-					}
-					log.Infof("worker %d: got task", idx)
-					task.Do()
-				}
+			for task := range tasks {
+				task.Do()
 			}
+			log.Infof("worker %d: finished", idx)
 		}(idx, wp.tasks)
 	}
 	wp.waitGroup.Wait()

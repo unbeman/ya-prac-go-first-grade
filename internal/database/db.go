@@ -7,8 +7,6 @@ import (
 	"gorm.io/gorm"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
 	errors2 "github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
 )
@@ -58,7 +56,6 @@ func (db *PG) migrate() error {
 
 func (db *PG) CreateNewUser(user *model.User) error {
 	result := db.conn.Create(user)
-	log.Infof("create new user is err dublicate: %v", errors.As(result.Error, &gorm.ErrDuplicatedKey))
 	if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
 		return fmt.Errorf("%w: user with login (%v)", errors2.ErrAlreadyExists, user.Login)
 	}
