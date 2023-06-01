@@ -27,7 +27,7 @@ func GetDatabase(dsn string) (*PG, error) {
 }
 
 func (db *PG) connect(dsn string) error {
-	conn, err := gorm.Open(postgres.Open(dsn)) //&gorm.Config{Logger: logger.Default.LogMode(logger.Error), TranslateError: true},
+	conn, err := gorm.Open(postgres.Open(dsn))
 	//todo: use custom logger based on logrus
 	if err != nil {
 		return err
@@ -198,17 +198,17 @@ func (db *PG) GetNotReadyOrders(userID uint) (orders []model.Order, err error) {
 
 func (db *PG) CreateWithdraw(user *model.User, withdrawInfo model.WithdrawnInput) error {
 	err := db.conn.Transaction(func(tx *gorm.DB) (txErr error) {
-		result := tx.Where("id = ? and current_balance >= ?", user.ID, withdrawInfo.Sum).First(user)
+		result := tx.Model(&user).Where(
+			"current_balance >= ?", withdrawInfo.Sum,
+		).Updates(map[string]interface{}{
+			"current_balance": gorm.Expr("current_balance - ?", withdrawInfo.Sum),
+			"withdrawn":       gorm.Expr("withdrawn + ?", withdrawInfo.Sum),
+		})
 		txErr = result.Error
 		if errors.Is(txErr, gorm.ErrRecordNotFound) {
 			return apperrors.ErrNotEnoughPoints
 		}
-		user.CurrentBalance -= withdrawInfo.Sum
-		user.Withdrawn += withdrawInfo.Sum
-		if txErr = tx.Save(user).Error; txErr != nil {
-			return
-		}
-		withdraw := model.Withdrawal{Order: withdrawInfo.OrderNumber, Sum: withdrawInfo.Sum, User: *user}
+		withdraw := model.Withdrawal{Order: withdrawInfo.OrderNumber, Sum: withdrawInfo.Sum, UserID: user.ID}
 		if txErr = tx.Create(&withdraw).Error; txErr != nil {
 			return
 		}
