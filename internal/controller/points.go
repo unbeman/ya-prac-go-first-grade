@@ -24,10 +24,6 @@ func GetPointsController(db *database.PG, accConn *connection.AccrualConnection,
 	return &PointsController{db: db, accrualConnection: accConn, wp: wp}
 }
 
-func (c PointsController) Ping() bool {
-	return true
-}
-
 func (c PointsController) AddUserOrder(user *model.User, orderNumber string) (isNewOrder bool, err error) {
 	err = utils.CheckOrderNumber(orderNumber)
 	if err != nil {

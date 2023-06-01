@@ -36,7 +36,6 @@ func GetAppHandler(authControl *controller.AuthController, pointsControl *contro
 	h.Use(logger.Logger("router", log.New()))
 	h.Use(middleware.Recoverer)
 
-	h.Get("/ping", h.Ping())
 	h.Route("/api/user", func(router chi.Router) {
 
 		router.Post("/register", h.Register())
@@ -55,17 +54,6 @@ func GetAppHandler(authControl *controller.AuthController, pointsControl *contro
 		})
 	})
 	return h
-}
-
-func (h AppHandler) Ping() http.HandlerFunc {
-	return func(writer http.ResponseWriter, request *http.Request) {
-		if h.pointsControl.Ping() {
-			writer.WriteHeader(http.StatusOK)
-		} else {
-			writer.WriteHeader(http.StatusInternalServerError)
-		}
-
-	}
 }
 
 func (h AppHandler) Register() http.HandlerFunc {
