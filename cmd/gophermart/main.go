@@ -45,11 +45,10 @@ func main() {
 			syscall.SIGQUIT,
 		)
 
-		for {
-			sig := <-exit
-			log.Infof("Got signal '%v'", sig)
-			appl.Shutdown(ctx)
-		}
+		sig := <-exit
+		log.Infof("Got signal '%v'", sig)
+		appl.Shutdown(ctx)
+
 	}()
 
 	appl.Run()
