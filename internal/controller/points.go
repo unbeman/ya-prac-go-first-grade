@@ -72,14 +72,14 @@ func (c PointsController) UpdateUserOrders(user *model.User) error {
 		return err
 	}
 
-	errInfo := make(chan error, len(notReadyOrders))
+	taskOutput := make(chan worker.TaskOutput, len(notReadyOrders))
 	for _, order := range notReadyOrders {
-		updateOrder := &worker.Task{Order: order, DoFunc: c.updateUserOrder, OutputErr: errInfo}
+		updateOrder := &worker.Task{Order: order, DoFunc: c.updateUserOrder, OutputErr: taskOutput}
 		c.wp.AddTask(updateOrder)
 	}
 	for idx := 0; idx < len(notReadyOrders); idx++ {
-		if orderErr := <-errInfo; orderErr != nil {
-			log.Error(orderErr)
+		if out := <-taskOutput; out.Err != nil {
+			log.Error(out.Err)
 		}
 	}
 	return nil

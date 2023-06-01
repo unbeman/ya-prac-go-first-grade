@@ -7,10 +7,16 @@ import (
 	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
 )
 
+//todo intefraces
+
+type TaskOutput struct {
+	Err error
+}
+
 type Task struct {
 	Order     model.Order
 	DoFunc    func(model.Order) (model.Order, error)
-	OutputErr chan error
+	OutputErr chan TaskOutput
 }
 
 func (t *Task) Do() {
@@ -18,7 +24,7 @@ func (t *Task) Do() {
 	if err != nil {
 		log.Error(err)
 	}
-	t.OutputErr <- err
+	t.OutputErr <- TaskOutput{Err: err}
 }
 
 type WorkersPool struct {
