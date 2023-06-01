@@ -38,217 +38,206 @@ func GetAppHandler(authControl *controller.AuthController, pointsControl *contro
 
 	h.Route("/api/user", func(router chi.Router) {
 
-		router.Post("/register", h.Register())
-		router.Post("/login", h.Login())
+		router.Post("/register", h.Register)
+		router.Post("/login", h.Login)
 
 		router.Group(func(ra chi.Router) {
 			ra.Use(h.authorized)
-			ra.Post("/orders", h.AddOrder())
-			ra.Get("/withdrawals", h.GetWithdrawals())
+			ra.Post("/orders", h.AddOrder)
+			ra.Get("/withdrawals", h.GetWithdrawals)
 			ra.Group(func(ru chi.Router) {
 				ru.Use(h.updOrdersInfo)
-				ru.Get("/orders", h.GetOrders())
-				ru.Get("/balance", h.GetBalance())
-				ru.Post("/balance/withdraw", h.WithdrawPoints())
+				ru.Get("/orders", h.GetOrders)
+				ru.Get("/balance", h.GetBalance)
+				ru.Post("/balance/withdraw", h.WithdrawPoints)
 			})
 		})
 	})
 	return h
 }
 
-func (h AppHandler) Register() http.HandlerFunc {
-	return func(writer http.ResponseWriter, request *http.Request) {
-		writer.Header().Set("Content-Type", "application/json")
+func (h AppHandler) Register(writer http.ResponseWriter, request *http.Request) {
+	writer.Header().Set("Content-Type", "application/json")
 
-		var userInfo model.UserInput
-		err := render.DecodeJSON(request.Body, &userInfo) //todo: use another decoder
-		if err != nil {
-			utils.WriteJSONError(writer, request, err, http.StatusBadRequest)
-			return
-		}
-
-		user, err := h.authControl.CreateUser(userInfo)
-		if errors.Is(err, apperrors.ErrAlreadyExists) {
-			utils.WriteJSONError(writer, request, err, http.StatusConflict)
-			return
-		}
-		if err != nil {
-			utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
-			return
-		}
-		session, err := h.authControl.CreateSession(user)
-		if err != nil {
-			utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
-			return
-		}
-		writer.Header().Set("Authorization", session.Token)
-		writer.WriteHeader(http.StatusOK)
+	var userInfo model.UserInput
+	err := render.DecodeJSON(request.Body, &userInfo) //todo: use another decoder
+	if err != nil {
+		utils.WriteJSONError(writer, request, err, http.StatusBadRequest)
+		return
 	}
+
+	user, err := h.authControl.CreateUser(userInfo)
+	if errors.Is(err, apperrors.ErrAlreadyExists) {
+		utils.WriteJSONError(writer, request, err, http.StatusConflict)
+		return
+	}
+	if err != nil {
+		utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
+		return
+	}
+	session, err := h.authControl.CreateSession(user)
+	if err != nil {
+		utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
+		return
+	}
+	writer.Header().Set("Authorization", session.Token)
+	writer.WriteHeader(http.StatusOK)
 }
 
-func (h AppHandler) Login() http.HandlerFunc {
-	return func(writer http.ResponseWriter, request *http.Request) {
-		writer.Header().Set("Content-Type", "application/json")
+func (h AppHandler) Login(writer http.ResponseWriter, request *http.Request) {
+	writer.Header().Set("Content-Type", "application/json")
 
-		var userInfo model.UserInput
-		err := render.DecodeJSON(request.Body, &userInfo) //todo: use another decoder
-		if err != nil {
-			utils.WriteJSONError(writer, request, err, http.StatusBadRequest)
-			return
-		}
-
-		user, err := h.authControl.GetUser(userInfo)
-		if errors.Is(err, apperrors.ErrInvalidUserCredentials) {
-			utils.WriteJSONError(writer, request, err, http.StatusUnauthorized)
-			return
-		}
-		if err != nil {
-			utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
-			return
-		}
-		log.Debug(user)
-
-		session, err := h.authControl.CreateSession(user)
-		if err != nil {
-			utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
-			return
-		}
-
-		writer.Header().Set("Authorization", session.Token) //todo: wrap
-		writer.WriteHeader(http.StatusOK)
+	var userInfo model.UserInput
+	err := render.DecodeJSON(request.Body, &userInfo) //todo: use another decoder
+	if err != nil {
+		utils.WriteJSONError(writer, request, err, http.StatusBadRequest)
+		return
 	}
+
+	user, err := h.authControl.GetUser(userInfo)
+	if errors.Is(err, apperrors.ErrInvalidUserCredentials) {
+		utils.WriteJSONError(writer, request, err, http.StatusUnauthorized)
+		return
+	}
+	if err != nil {
+		utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
+		return
+	}
+	log.Debug(user)
+
+	session, err := h.authControl.CreateSession(user)
+	if err != nil {
+		utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
+		return
+	}
+
+	writer.Header().Set("Authorization", session.Token) //todo: wrap
+	writer.WriteHeader(http.StatusOK)
 }
-func (h AppHandler) AddOrder() http.HandlerFunc {
-	return func(writer http.ResponseWriter, request *http.Request) {
-		writer.Header().Set("Content-Type", "text/plain")
+func (h AppHandler) AddOrder(writer http.ResponseWriter, request *http.Request) {
+	writer.Header().Set("Content-Type", "text/plain")
 
-		user := h.getUserFromContext(request.Context())
+	user := h.getUserFromContext(request.Context())
 
-		orderNumber, err := io.ReadAll(request.Body)
-		if err != nil {
-			http.Error(writer, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		isNewOrder, err := h.pointsControl.AddUserOrder(user, string(orderNumber))
-		if errors.Is(err, apperrors.ErrInvalidOrderNumberFormat) {
-			http.Error(writer, err.Error(), http.StatusUnprocessableEntity)
-			return
-		}
-		if errors.Is(err, apperrors.ErrAlreadyExists) {
-			http.Error(writer, err.Error(), http.StatusConflict)
-		}
-		if err != nil {
-			http.Error(writer, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		if isNewOrder {
-			writer.WriteHeader(http.StatusAccepted)
-			return
-		}
-		writer.WriteHeader(http.StatusOK)
+	orderNumber, err := io.ReadAll(request.Body)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
 	}
+
+	isNewOrder, err := h.pointsControl.AddUserOrder(user, string(orderNumber))
+	if errors.Is(err, apperrors.ErrInvalidOrderNumberFormat) {
+		http.Error(writer, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+	if errors.Is(err, apperrors.ErrAlreadyExists) {
+		http.Error(writer, err.Error(), http.StatusConflict)
+	}
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if isNewOrder {
+		writer.WriteHeader(http.StatusAccepted)
+		return
+	}
+	writer.WriteHeader(http.StatusOK)
 }
 
-func (h AppHandler) GetOrders() http.HandlerFunc {
-	return func(writer http.ResponseWriter, request *http.Request) {
-		writer.Header().Set("Content-Type", "application/json")
+func (h AppHandler) GetOrders(writer http.ResponseWriter, request *http.Request) {
+	writer.Header().Set("Content-Type", "application/json")
 
-		user := h.getUserFromContext(request.Context())
-		orders, err := h.pointsControl.GetUserOrders(user)
-		if errors.Is(err, apperrors.ErrNoRecords) {
-			writer.WriteHeader(http.StatusNoContent)
-			return
-		}
-		if err != nil {
-			utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
-			return
-		}
-		jsonOrders, err := json.Marshal(orders)
-		if err != nil {
-			utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
-			return
-		}
-		log.Info("GetOrders result", string(jsonOrders))
-		writer.Write(jsonOrders)
-		writer.WriteHeader(http.StatusOK)
+	user := h.getUserFromContext(request.Context())
+	orders, err := h.pointsControl.GetUserOrders(user)
+	if errors.Is(err, apperrors.ErrNoRecords) {
+		writer.WriteHeader(http.StatusNoContent)
+		return
 	}
+	if err != nil {
+		utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
+		return
+	}
+	jsonOrders, err := json.Marshal(orders)
+	if err != nil {
+		utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
+		return
+	}
+	log.Info("GetOrders result", string(jsonOrders))
+	writer.Write(jsonOrders)
+	writer.WriteHeader(http.StatusOK)
+
 }
 
-func (h AppHandler) GetBalance() http.HandlerFunc {
-	return func(writer http.ResponseWriter, request *http.Request) {
-		writer.Header().Set("Content-Type", "application/json")
+func (h AppHandler) GetBalance(writer http.ResponseWriter, request *http.Request) {
+	writer.Header().Set("Content-Type", "application/json")
 
-		user := h.getUserFromContext(request.Context())
-		userBalance, err := h.pointsControl.GetUserBalance(user)
-		if err != nil {
-			utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
-			return
-		}
-		jsonUserBalance, err := json.Marshal(userBalance)
-		if err != nil {
-			utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
-			return
-		}
-		writer.Write(jsonUserBalance)
-		writer.WriteHeader(http.StatusOK)
+	user := h.getUserFromContext(request.Context())
+	userBalance, err := h.pointsControl.GetUserBalance(user)
+	if err != nil {
+		utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
+		return
 	}
+	jsonUserBalance, err := json.Marshal(userBalance)
+	if err != nil {
+		utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
+		return
+	}
+	writer.Write(jsonUserBalance)
+	writer.WriteHeader(http.StatusOK)
 }
 
-func (h AppHandler) WithdrawPoints() http.HandlerFunc {
-	return func(writer http.ResponseWriter, request *http.Request) {
-		writer.Header().Set("Content-Type", "application/json")
+func (h AppHandler) WithdrawPoints(writer http.ResponseWriter, request *http.Request) {
+	writer.Header().Set("Content-Type", "application/json")
 
-		user := h.getUserFromContext(request.Context())
+	user := h.getUserFromContext(request.Context())
 
-		var withdrawInfo model.WithdrawnInput
-		err := render.DecodeJSON(request.Body, &withdrawInfo) //todo: use another decoder
-		if err != nil {
-			utils.WriteJSONError(writer, request, err, http.StatusBadRequest)
-			return
-		}
-
-		err = h.pointsControl.CreateWithdraw(user, withdrawInfo)
-		if errors.Is(err, apperrors.ErrNotEnoughPoints) {
-			utils.WriteJSONError(writer, request, err, http.StatusPaymentRequired)
-			return
-		}
-		if errors.Is(err, apperrors.ErrInvalidOrderNumberFormat) {
-			utils.WriteJSONError(writer, request, err, http.StatusUnprocessableEntity)
-			return
-		}
-		if err != nil {
-			utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
-			return
-		}
-		writer.WriteHeader(http.StatusOK)
+	var withdrawInfo model.WithdrawnInput
+	err := render.DecodeJSON(request.Body, &withdrawInfo) //todo: use another decoder
+	if err != nil {
+		utils.WriteJSONError(writer, request, err, http.StatusBadRequest)
+		return
 	}
+
+	err = h.pointsControl.CreateWithdraw(user, withdrawInfo)
+	if errors.Is(err, apperrors.ErrNotEnoughPoints) {
+		utils.WriteJSONError(writer, request, err, http.StatusPaymentRequired)
+		return
+	}
+	if errors.Is(err, apperrors.ErrInvalidOrderNumberFormat) {
+		utils.WriteJSONError(writer, request, err, http.StatusUnprocessableEntity)
+		return
+	}
+	if err != nil {
+		utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
+		return
+	}
+	writer.WriteHeader(http.StatusOK)
+
 }
 
-func (h AppHandler) GetWithdrawals() http.HandlerFunc {
-	return func(writer http.ResponseWriter, request *http.Request) {
-		writer.Header().Set("Content-Type", "application/json")
+func (h AppHandler) GetWithdrawals(writer http.ResponseWriter, request *http.Request) {
+	writer.Header().Set("Content-Type", "application/json")
 
-		user := h.getUserFromContext(request.Context())
+	user := h.getUserFromContext(request.Context())
 
-		withdrawals, err := h.pointsControl.GetUserWithdrawals(user)
-		if err != nil {
-			utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
-			return
-		}
-		if len(withdrawals) == 0 { //todo: wrap
-			writer.WriteHeader(http.StatusNoContent)
-			return
-		}
-		jsonWithdrawals, err := json.Marshal(withdrawals)
-		if err != nil {
-			utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
-			return
-		}
-		writer.Write(jsonWithdrawals)
-		writer.WriteHeader(http.StatusOK)
+	withdrawals, err := h.pointsControl.GetUserWithdrawals(user)
+	if err != nil {
+		utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
+		return
 	}
+	if len(withdrawals) == 0 { //todo: wrap
+		writer.WriteHeader(http.StatusNoContent)
+		return
+	}
+	jsonWithdrawals, err := json.Marshal(withdrawals)
+	if err != nil {
+		utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
+		return
+	}
+	writer.Write(jsonWithdrawals)
+	writer.WriteHeader(http.StatusOK)
+
 }
 
 func (h AppHandler) getUserFromContext(ctx context.Context) *model.User {
