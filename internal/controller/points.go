@@ -6,7 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	errors2 "github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/connection"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/database"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
@@ -31,11 +31,11 @@ func (c PointsController) Ping() bool {
 func (c PointsController) AddUserOrder(user *model.User, orderNumber string) (isNewOrder bool, err error) {
 	err = utils.CheckOrderNumber(orderNumber)
 	if err != nil {
-		return false, errors2.ErrInvalidOrderNumberFormat
+		return false, apperrors.ErrInvalidOrderNumberFormat
 	}
 
 	existingOrder, err := c.db.GetOrderByNumber(orderNumber)
-	if errors.Is(err, errors2.ErrNoRecords) {
+	if errors.Is(err, apperrors.ErrNoRecords) {
 		err = c.db.CreateNewUserOrder(user.ID, orderNumber)
 		if err != nil {
 			return
@@ -46,7 +46,7 @@ func (c PointsController) AddUserOrder(user *model.User, orderNumber string) (is
 		return
 	}
 	if existingOrder.UserID != user.ID { //заказ загружен другим пользователем
-		return false, errors2.ErrAlreadyExists
+		return false, apperrors.ErrAlreadyExists
 	}
 	return false, nil
 }
@@ -108,7 +108,7 @@ func (c PointsController) GetUserBalance(user *model.User) (balance model.UserBa
 func (c PointsController) CreateWithdraw(user *model.User, withdrawInfo model.WithdrawnInput) error {
 	err := utils.CheckOrderNumber(withdrawInfo.OrderNumber)
 	if err != nil {
-		return errors2.ErrInvalidOrderNumberFormat
+		return apperrors.ErrInvalidOrderNumberFormat
 	}
 	//if err = c.UpdateUserOrders(user); err != nil {
 	//	return err

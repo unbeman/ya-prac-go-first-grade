@@ -17,6 +17,8 @@ const (
 	RequestTimeoutDefault       = 2 * time.Second
 	RateLimitDefault            = 1 * time.Minute
 	RateTokensNumber            = 300
+	WorkersCountDefault         = 10
+	TasksSizeDefault            = 30
 )
 
 type LoggerConfig struct {
@@ -41,6 +43,12 @@ type ApplicationConfig struct {
 	Logger        LoggerConfig
 	Auth          AuthConfig
 	AccrualConn   AccrualConnConfig
+	WorkerPool    WorkerPoolConfig
+}
+
+type WorkerPoolConfig struct {
+	WorkersCount int
+	TasksSize    int
 }
 
 func (cfg *ApplicationConfig) parseEnv() error {
@@ -79,6 +87,10 @@ func GetConfig() (ApplicationConfig, error) {
 			RequestTimeout:   RequestTimeoutDefault,
 			RateLimit:        RateLimitDefault,
 			RateTokensNumber: RateTokensNumber,
+		},
+		WorkerPool: WorkerPoolConfig{
+			WorkersCount: WorkersCountDefault,
+			TasksSize:    TasksSizeDefault,
 		},
 	}
 	if err := cfg.parseFlags(); err != nil {

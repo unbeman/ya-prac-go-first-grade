@@ -4,10 +4,9 @@ import (
 	"sync"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/config"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
 )
-
-//todo intefraces
 
 type TaskOutput struct {
 	Err error
@@ -34,10 +33,10 @@ type WorkersPool struct {
 	waitGroup   sync.WaitGroup
 }
 
-func NewWorkersPool(wokersCount int) *WorkersPool {
+func NewWorkersPool(cfg config.WorkerPoolConfig) *WorkersPool {
 	return &WorkersPool{
-		wokersCount: wokersCount,
-		tasks:       make(chan *Task, 10), //todo buffer
+		wokersCount: cfg.WorkersCount,
+		tasks:       make(chan *Task, cfg.TasksSize),
 	}
 }
 

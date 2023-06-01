@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 	"time"
 
-	errors2 "github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
 )
 
@@ -57,10 +57,10 @@ func (db *PG) migrate() error {
 func (db *PG) CreateNewUser(user *model.User) error {
 	result := db.conn.Create(user)
 	if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
-		return fmt.Errorf("%w: user with login (%v)", errors2.ErrAlreadyExists, user.Login)
+		return fmt.Errorf("%w: user with login (%v)", apperrors.ErrAlreadyExists, user.Login)
 	}
 	if result.Error != nil {
-		return fmt.Errorf("%w: %v", errors2.ErrDB, result.Error)
+		return fmt.Errorf("%w: %v", apperrors.ErrDB, result.Error)
 	}
 	return nil
 }
@@ -69,11 +69,11 @@ func (db *PG) GetUserByLogin(login string) (user *model.User, err error) {
 	user = &model.User{}
 	result := db.conn.First(user, "login = ?", login)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		err = errors2.ErrInvalidUserCredentials
+		err = apperrors.ErrInvalidUserCredentials
 		return
 	}
 	if result.Error != nil {
-		err = fmt.Errorf("%w: %v", errors2.ErrDB, result.Error)
+		err = fmt.Errorf("%w: %v", apperrors.ErrDB, result.Error)
 		return
 	}
 	return
@@ -83,7 +83,7 @@ func (db *PG) GetUserByID(userID uint) (user *model.User, err error) {
 	user = &model.User{}
 	result := db.conn.First(user, userID)
 	if result.Error != nil {
-		err = fmt.Errorf("%w: %v", errors2.ErrDB, result.Error)
+		err = fmt.Errorf("%w: %v", apperrors.ErrDB, result.Error)
 		return
 	}
 	return
@@ -92,7 +92,7 @@ func (db *PG) GetUserByID(userID uint) (user *model.User, err error) {
 func (db *PG) CreateNewSession(session *model.Session) error {
 	result := db.conn.Create(session)
 	if result.Error != nil {
-		return fmt.Errorf("%w: %v", errors2.ErrDB, result.Error)
+		return fmt.Errorf("%w: %v", apperrors.ErrDB, result.Error)
 	}
 	return nil
 }
@@ -106,11 +106,11 @@ func (db *PG) GetUserByToken(token string) (user *model.User, err error) {
 	).First(user)
 	err = result.Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		err = errors2.ErrInvalidToken
+		err = apperrors.ErrInvalidToken
 		return
 	}
 	if err != nil {
-		err = fmt.Errorf("%w: %v", errors2.ErrDB, err)
+		err = fmt.Errorf("%w: %v", apperrors.ErrDB, err)
 		return
 	}
 	return
@@ -121,11 +121,11 @@ func (db *PG) GetOrderByNumber(number string) (existingOrder *model.Order, err e
 	result := db.conn.First(existingOrder, "number = ?", number)
 	err = result.Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		err = errors2.ErrNoRecords
+		err = apperrors.ErrNoRecords
 		return
 	}
 	if err != nil {
-		err = fmt.Errorf("%w: %v", errors2.ErrDB, err)
+		err = fmt.Errorf("%w: %v", apperrors.ErrDB, err)
 		return
 	}
 	return
@@ -135,7 +135,7 @@ func (db *PG) CreateNewUserOrder(userID uint, number string) error {
 	newOrder := &model.Order{UserID: userID, Status: model.StatusNew, Number: number}
 	result := db.conn.Create(newOrder)
 	if result.Error != nil {
-		return fmt.Errorf("%w: %v", errors2.ErrDB, result.Error)
+		return fmt.Errorf("%w: %v", apperrors.ErrDB, result.Error)
 	}
 	return nil
 }
@@ -158,7 +158,7 @@ func (db *PG) UpdateUserBalanceAndOrder(order *model.Order) error {
 	})
 
 	if err != nil {
-		return fmt.Errorf("%w: %v", errors2.ErrDB, err)
+		return fmt.Errorf("%w: %v", apperrors.ErrDB, err)
 	}
 	return nil
 }
@@ -167,11 +167,11 @@ func (db *PG) GetUserOrders(userID uint) (orders []model.Order, err error) {
 	result := db.conn.Find(&orders, "user_id = ?", userID).Order("created_at ASC")
 	err = result.Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		err = errors2.ErrNoRecords
+		err = apperrors.ErrNoRecords
 		return
 	}
 	if err != nil {
-		err = fmt.Errorf("%w: %v", errors2.ErrDB, err)
+		err = fmt.Errorf("%w: %v", apperrors.ErrDB, err)
 		return
 	}
 	return
@@ -186,11 +186,11 @@ func (db *PG) GetNotReadyOrders(userID uint) (orders []model.Order, err error) {
 	)
 	err = result.Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		err = errors2.ErrNoRecords
+		err = apperrors.ErrNoRecords
 		return
 	}
 	if err != nil {
-		err = fmt.Errorf("%w: %v", errors2.ErrDB, err)
+		err = fmt.Errorf("%w: %v", apperrors.ErrDB, err)
 		return
 	}
 	return
@@ -201,7 +201,7 @@ func (db *PG) CreateWithdraw(user *model.User, withdrawInfo model.WithdrawnInput
 		result := tx.Where("id = ? and current_balance >= ?", user.ID, withdrawInfo.Sum).First(user)
 		txErr = result.Error
 		if errors.Is(txErr, gorm.ErrRecordNotFound) {
-			return errors2.ErrNotEnoughPoints
+			return apperrors.ErrNotEnoughPoints
 		}
 		user.CurrentBalance -= withdrawInfo.Sum
 		user.Withdrawn += withdrawInfo.Sum
@@ -215,11 +215,11 @@ func (db *PG) CreateWithdraw(user *model.User, withdrawInfo model.WithdrawnInput
 
 		return
 	})
-	if errors.Is(err, errors2.ErrNotEnoughPoints) {
+	if errors.Is(err, apperrors.ErrNotEnoughPoints) {
 		return err
 	}
 	if err != nil {
-		return fmt.Errorf("%w: %v", errors2.ErrDB, err)
+		return fmt.Errorf("%w: %v", apperrors.ErrDB, err)
 	}
 	return nil
 }
@@ -228,7 +228,7 @@ func (db *PG) GetUserWithdrawals(userID uint) (withdrawals []model.Withdrawal, e
 	result := db.conn.Find(&withdrawals, "user_id = ?", userID).Order("created_at ASC")
 	err = result.Error
 	if err != nil {
-		err = fmt.Errorf("%w: %v", errors2.ErrDB, err)
+		err = fmt.Errorf("%w: %v", apperrors.ErrDB, err)
 		return
 	}
 	return

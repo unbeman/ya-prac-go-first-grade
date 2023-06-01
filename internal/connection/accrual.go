@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/config"
 
-	errors2 "github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
 )
 
@@ -63,12 +63,12 @@ func (ac *AccrualConnection) GetOrderAccrual(ctx context.Context, orderNumber st
 		}
 		return orderInfo, nil
 	case http.StatusNoContent:
-		err = errors2.ErrNoAccrualInfo
+		err = apperrors.ErrNoAccrualInfo
 	case http.StatusTooManyRequests: //не воспроизводится
 		request.Header.Get("Retry-After")
 		//todo: go retry
 	case http.StatusInternalServerError:
-		err = errors2.ErrNoAccrualInfo //todo another err
+		err = apperrors.ErrNoAccrualInfo //todo another err
 	}
 	return
 }

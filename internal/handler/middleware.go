@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	errors2 "github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
 )
 
 type ContextKey string
@@ -16,7 +16,7 @@ func (h AppHandler) authorized(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		inputToken := request.Header.Get("Authorization")
 		user, err := h.authControl.GetUserByToken(inputToken)
-		if errors.Is(err, errors2.ErrInvalidToken) {
+		if errors.Is(err, apperrors.ErrInvalidToken) {
 			http.Error(writer, err.Error(), http.StatusUnauthorized)
 			return
 		}

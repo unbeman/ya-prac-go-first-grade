@@ -28,7 +28,7 @@ func GetApplication(cfg config.ApplicationConfig) (*application, error) { //TODO
 	}
 	accConn := connection.NewAccrualConnection(cfg.AccrualConn)
 	authControl := controller.GetAuthController(db, cfg.Auth)
-	workerPool := worker.NewWorkersPool(3)
+	workerPool := worker.NewWorkersPool(cfg.WorkerPool)
 	pointsControl := controller.GetPointsController(db, accConn, workerPool)
 	hndlr := handler.GetAppHandler(authControl, pointsControl)
 	return &application{

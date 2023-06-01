@@ -13,7 +13,7 @@ import (
 	"github.com/go-chi/render"
 	log "github.com/sirupsen/logrus"
 
-	errors2 "github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/controller"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/utils"
@@ -80,7 +80,7 @@ func (h AppHandler) Register() http.HandlerFunc {
 		}
 
 		user, err := h.authControl.CreateUser(userInfo)
-		if errors.Is(err, errors2.ErrAlreadyExists) {
+		if errors.Is(err, apperrors.ErrAlreadyExists) {
 			utils.WriteJSONError(writer, request, err, http.StatusConflict)
 			return
 		}
@@ -110,7 +110,7 @@ func (h AppHandler) Login() http.HandlerFunc {
 		}
 
 		user, err := h.authControl.GetUser(userInfo)
-		if errors.Is(err, errors2.ErrInvalidUserCredentials) {
+		if errors.Is(err, apperrors.ErrInvalidUserCredentials) {
 			utils.WriteJSONError(writer, request, err, http.StatusUnauthorized)
 			return
 		}
@@ -143,11 +143,11 @@ func (h AppHandler) AddOrder() http.HandlerFunc {
 		}
 
 		isNewOrder, err := h.pointsControl.AddUserOrder(user, string(orderNumber))
-		if errors.Is(err, errors2.ErrInvalidOrderNumberFormat) {
+		if errors.Is(err, apperrors.ErrInvalidOrderNumberFormat) {
 			http.Error(writer, err.Error(), http.StatusUnprocessableEntity)
 			return
 		}
-		if errors.Is(err, errors2.ErrAlreadyExists) {
+		if errors.Is(err, apperrors.ErrAlreadyExists) {
 			http.Error(writer, err.Error(), http.StatusConflict)
 		}
 		if err != nil {
@@ -169,7 +169,7 @@ func (h AppHandler) GetOrders() http.HandlerFunc {
 
 		user := h.getUserFromContext(request.Context())
 		orders, err := h.pointsControl.GetUserOrders(user)
-		if errors.Is(err, errors2.ErrNoRecords) {
+		if errors.Is(err, apperrors.ErrNoRecords) {
 			writer.WriteHeader(http.StatusNoContent)
 			return
 		}
@@ -222,11 +222,11 @@ func (h AppHandler) WithdrawPoints() http.HandlerFunc {
 		}
 
 		err = h.pointsControl.CreateWithdraw(user, withdrawInfo)
-		if errors.Is(err, errors2.ErrNotEnoughPoints) {
+		if errors.Is(err, apperrors.ErrNotEnoughPoints) {
 			utils.WriteJSONError(writer, request, err, http.StatusPaymentRequired)
 			return
 		}
-		if errors.Is(err, errors2.ErrInvalidOrderNumberFormat) {
+		if errors.Is(err, apperrors.ErrInvalidOrderNumberFormat) {
 			utils.WriteJSONError(writer, request, err, http.StatusUnprocessableEntity)
 			return
 		}

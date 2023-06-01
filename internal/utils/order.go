@@ -3,7 +3,7 @@ package utils
 import (
 	"strconv"
 
-	errors2 "github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
 )
 
 func CheckOrderNumber(orderNumber string) error {
@@ -12,7 +12,7 @@ func CheckOrderNumber(orderNumber string) error {
 		return err
 	}
 	if !valid(number) {
-		return errors2.ErrInvalidOrderNumberFormat
+		return apperrors.ErrInvalidOrderNumberFormat
 	}
 	return nil
 }
