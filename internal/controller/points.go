@@ -78,16 +78,10 @@ func (c PointsController) UpdateUserOrders(ctx context.Context, user *model.User
 }
 
 func (c PointsController) GetUserOrders(ctx context.Context, user *model.User) (orders []model.Order, err error) {
-	//if err = c.UpdateUserOrders(user); err != nil {
-	//	return
-	//}
 	return c.db.GetUserOrders(ctx, user.ID)
 }
 
 func (c PointsController) GetUserBalance(ctx context.Context, user *model.User) (balance model.UserBalanceOutput, err error) {
-	//if err = c.UpdateUserOrders(user); err != nil {
-	//	return
-	//}
 	user, err = c.db.GetUserByID(ctx, user.ID)
 	if err != nil {
 		return
@@ -102,9 +96,6 @@ func (c PointsController) CreateWithdraw(ctx context.Context, user *model.User, 
 	if err != nil {
 		return apperrors.ErrInvalidOrderNumberFormat
 	}
-	//if err = c.UpdateUserOrders(user); err != nil {
-	//	return err
-	//}
 	err = c.db.CreateWithdraw(ctx, user, withdrawInfo)
 	return err
 }
