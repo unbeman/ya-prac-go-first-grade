@@ -15,24 +15,24 @@ import (
 )
 
 type PointsController struct {
-	db                *database.PG
-	accrualConnection *connection.AccrualConnection
+	db                database.Database
+	accrualConnection connection.AccrualConnector
 	wp                *worker.WorkersPool
 }
 
-func GetPointsController(db *database.PG, accConn *connection.AccrualConnection, wp *worker.WorkersPool) *PointsController {
+func GetPointsController(db database.Database, accConn connection.AccrualConnector, wp *worker.WorkersPool) *PointsController {
 	return &PointsController{db: db, accrualConnection: accConn, wp: wp}
 }
 
-func (c PointsController) AddUserOrder(user *model.User, orderNumber string) (isNewOrder bool, err error) {
+func (c PointsController) AddUserOrder(ctx context.Context, user *model.User, orderNumber string) (isNewOrder bool, err error) {
 	err = utils.CheckOrderNumber(orderNumber)
 	if err != nil {
 		return false, apperrors.ErrInvalidOrderNumberFormat
 	}
 
-	existingOrder, err := c.db.GetOrderByNumber(orderNumber)
+	existingOrder, err := c.db.GetOrderByNumber(ctx, orderNumber)
 	if errors.Is(err, apperrors.ErrNoRecords) {
-		err = c.db.CreateNewUserOrder(user.ID, orderNumber)
+		err = c.db.CreateNewUserOrder(ctx, user.ID, orderNumber)
 		if err != nil {
 			return
 		}
@@ -61,8 +61,8 @@ func (c PointsController) updateUserOrder(order model.Order) (model.Order, error
 	return order, err
 }
 
-func (c PointsController) UpdateUserOrders(user *model.User) error {
-	notReadyOrders, err := c.db.GetNotReadyOrders(user.ID)
+func (c PointsController) UpdateUserOrders(ctx context.Context, user *model.User) error {
+	notReadyOrders, err := c.db.GetNotReadyOrders(ctx, user.ID)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -81,18 +81,18 @@ func (c PointsController) UpdateUserOrders(user *model.User) error {
 	return nil
 }
 
-func (c PointsController) GetUserOrders(user *model.User) (orders []model.Order, err error) {
+func (c PointsController) GetUserOrders(ctx context.Context, user *model.User) (orders []model.Order, err error) {
 	//if err = c.UpdateUserOrders(user); err != nil {
 	//	return
 	//}
-	return c.db.GetUserOrders(user.ID)
+	return c.db.GetUserOrders(ctx, user.ID)
 }
 
-func (c PointsController) GetUserBalance(user *model.User) (balance model.UserBalanceOutput, err error) {
+func (c PointsController) GetUserBalance(ctx context.Context, user *model.User) (balance model.UserBalanceOutput, err error) {
 	//if err = c.UpdateUserOrders(user); err != nil {
 	//	return
 	//}
-	user, err = c.db.GetUserByID(user.ID)
+	user, err = c.db.GetUserByID(ctx, user.ID)
 	if err != nil {
 		return
 	}
@@ -101,7 +101,7 @@ func (c PointsController) GetUserBalance(user *model.User) (balance model.UserBa
 	return
 }
 
-func (c PointsController) CreateWithdraw(user *model.User, withdrawInfo model.WithdrawnInput) error {
+func (c PointsController) CreateWithdraw(ctx context.Context, user *model.User, withdrawInfo model.WithdrawnInput) error {
 	err := utils.CheckOrderNumber(withdrawInfo.OrderNumber)
 	if err != nil {
 		return apperrors.ErrInvalidOrderNumberFormat
@@ -109,10 +109,10 @@ func (c PointsController) CreateWithdraw(user *model.User, withdrawInfo model.Wi
 	//if err = c.UpdateUserOrders(user); err != nil {
 	//	return err
 	//}
-	err = c.db.CreateWithdraw(user, withdrawInfo)
+	err = c.db.CreateWithdraw(ctx, user, withdrawInfo)
 	return err
 }
 
-func (c PointsController) GetUserWithdrawals(user *model.User) (withdrawals []model.Withdrawal, err error) {
-	return c.db.GetUserWithdrawals(user.ID)
+func (c PointsController) GetUserWithdrawals(ctx context.Context, user *model.User) (withdrawals []model.Withdrawal, err error) {
+	return c.db.GetUserWithdrawals(ctx, user.ID)
 }

@@ -16,6 +16,14 @@ import (
 	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
 )
 
+type AccrualConnector interface {
+	GetOrderAccrual(ctx context.Context, orderNumber string) (model.OrderAccrualInfo, error)
+}
+
+func GetAccrualConnector(cfg config.AccrualConnConfig) AccrualConnector {
+	return NewAccrualConnection(cfg)
+}
+
 type AccrualConnection struct {
 	client         http.Client
 	address        string
@@ -37,10 +45,8 @@ func NewAccrualConnection(cfg config.AccrualConnConfig) *AccrualConnection {
 // todo: wrap errors
 func (ac *AccrualConnection) GetOrderAccrual(ctx context.Context, orderNumber string) (orderInfo model.OrderAccrualInfo, err error) {
 	ac.rateLimiter.Wait(ctx)
-	ctx2, cancel := context.WithTimeout(ctx, ac.requestTimeout)
-	defer cancel()
 	url := fmt.Sprintf("%v/api/orders/%v", ac.address, orderNumber)
-	request, err := http.NewRequestWithContext(ctx2, http.MethodGet, url, nil)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		log.Error(err)
 		return

@@ -57,6 +57,7 @@ func GetAppHandler(authControl *controller.AuthController, pointsControl *contro
 }
 
 func (h AppHandler) Register(writer http.ResponseWriter, request *http.Request) {
+	ctx := request.Context()
 	writer.Header().Set("Content-Type", "application/json")
 
 	var userInfo model.UserInput
@@ -66,7 +67,7 @@ func (h AppHandler) Register(writer http.ResponseWriter, request *http.Request) 
 		return
 	}
 
-	user, err := h.authControl.CreateUser(userInfo)
+	user, err := h.authControl.CreateUser(ctx, userInfo)
 	if errors.Is(err, apperrors.ErrAlreadyExists) {
 		utils.WriteJSONError(writer, request, err, http.StatusConflict)
 		return
@@ -75,7 +76,7 @@ func (h AppHandler) Register(writer http.ResponseWriter, request *http.Request) 
 		utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
 		return
 	}
-	session, err := h.authControl.CreateSession(user)
+	session, err := h.authControl.CreateSession(ctx, user)
 	if err != nil {
 		utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
 		return
@@ -85,6 +86,7 @@ func (h AppHandler) Register(writer http.ResponseWriter, request *http.Request) 
 }
 
 func (h AppHandler) Login(writer http.ResponseWriter, request *http.Request) {
+	ctx := request.Context()
 	writer.Header().Set("Content-Type", "application/json")
 
 	var userInfo model.UserInput
@@ -94,7 +96,7 @@ func (h AppHandler) Login(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	user, err := h.authControl.GetUser(userInfo)
+	user, err := h.authControl.GetUser(ctx, userInfo)
 	if errors.Is(err, apperrors.ErrInvalidUserCredentials) {
 		utils.WriteJSONError(writer, request, err, http.StatusUnauthorized)
 		return
@@ -105,7 +107,7 @@ func (h AppHandler) Login(writer http.ResponseWriter, request *http.Request) {
 	}
 	log.Debug(user)
 
-	session, err := h.authControl.CreateSession(user)
+	session, err := h.authControl.CreateSession(ctx, user)
 	if err != nil {
 		utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
 		return
@@ -115,6 +117,7 @@ func (h AppHandler) Login(writer http.ResponseWriter, request *http.Request) {
 	writer.WriteHeader(http.StatusOK)
 }
 func (h AppHandler) AddOrder(writer http.ResponseWriter, request *http.Request) {
+	ctx := request.Context()
 	writer.Header().Set("Content-Type", "text/plain")
 
 	user := h.getUserFromContext(request.Context())
@@ -125,7 +128,7 @@ func (h AppHandler) AddOrder(writer http.ResponseWriter, request *http.Request) 
 		return
 	}
 
-	isNewOrder, err := h.pointsControl.AddUserOrder(user, string(orderNumber))
+	isNewOrder, err := h.pointsControl.AddUserOrder(ctx, user, string(orderNumber))
 	if errors.Is(err, apperrors.ErrInvalidOrderNumberFormat) {
 		http.Error(writer, err.Error(), http.StatusUnprocessableEntity)
 		return
@@ -146,10 +149,11 @@ func (h AppHandler) AddOrder(writer http.ResponseWriter, request *http.Request) 
 }
 
 func (h AppHandler) GetOrders(writer http.ResponseWriter, request *http.Request) {
+	ctx := request.Context()
 	writer.Header().Set("Content-Type", "application/json")
 
 	user := h.getUserFromContext(request.Context())
-	orders, err := h.pointsControl.GetUserOrders(user)
+	orders, err := h.pointsControl.GetUserOrders(ctx, user)
 	if errors.Is(err, apperrors.ErrNoRecords) {
 		writer.WriteHeader(http.StatusNoContent)
 		return
@@ -170,10 +174,11 @@ func (h AppHandler) GetOrders(writer http.ResponseWriter, request *http.Request)
 }
 
 func (h AppHandler) GetBalance(writer http.ResponseWriter, request *http.Request) {
+	ctx := request.Context()
 	writer.Header().Set("Content-Type", "application/json")
 
 	user := h.getUserFromContext(request.Context())
-	userBalance, err := h.pointsControl.GetUserBalance(user)
+	userBalance, err := h.pointsControl.GetUserBalance(ctx, user)
 	if err != nil {
 		utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
 		return
@@ -188,6 +193,7 @@ func (h AppHandler) GetBalance(writer http.ResponseWriter, request *http.Request
 }
 
 func (h AppHandler) WithdrawPoints(writer http.ResponseWriter, request *http.Request) {
+	ctx := request.Context()
 	writer.Header().Set("Content-Type", "application/json")
 
 	user := h.getUserFromContext(request.Context())
@@ -199,7 +205,7 @@ func (h AppHandler) WithdrawPoints(writer http.ResponseWriter, request *http.Req
 		return
 	}
 
-	err = h.pointsControl.CreateWithdraw(user, withdrawInfo)
+	err = h.pointsControl.CreateWithdraw(ctx, user, withdrawInfo)
 	if errors.Is(err, apperrors.ErrNotEnoughPoints) {
 		utils.WriteJSONError(writer, request, err, http.StatusPaymentRequired)
 		return
@@ -217,11 +223,12 @@ func (h AppHandler) WithdrawPoints(writer http.ResponseWriter, request *http.Req
 }
 
 func (h AppHandler) GetWithdrawals(writer http.ResponseWriter, request *http.Request) {
+	ctx := request.Context()
 	writer.Header().Set("Content-Type", "application/json")
 
 	user := h.getUserFromContext(request.Context())
 
-	withdrawals, err := h.pointsControl.GetUserWithdrawals(user)
+	withdrawals, err := h.pointsControl.GetUserWithdrawals(ctx, user)
 	if err != nil {
 		utils.WriteJSONError(writer, request, err, http.StatusInternalServerError)
 		return

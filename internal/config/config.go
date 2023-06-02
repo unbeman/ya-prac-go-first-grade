@@ -39,7 +39,7 @@ type AccrualConnConfig struct {
 
 type ApplicationConfig struct {
 	ServerAddress string `env:"RUN_ADDRESS"`
-	DatabaseURI   string `env:"DATABASE_URI"`
+	Database      DatabaseConfig
 	Logger        LoggerConfig
 	Auth          AuthConfig
 	AccrualConn   AccrualConnConfig
@@ -49,6 +49,10 @@ type ApplicationConfig struct {
 type WorkerPoolConfig struct {
 	WorkersCount int
 	TasksSize    int
+}
+
+type DatabaseConfig struct {
+	DatabaseURI string `env:"DATABASE_URI"`
 }
 
 func (cfg *ApplicationConfig) parseEnv() error {
@@ -65,7 +69,7 @@ func (cfg *ApplicationConfig) parseFlags() error {
 	logLevel := flag.String("l", LogLevelDefault, "log level, allowed: info, debug")
 	flag.Parse()
 	cfg.ServerAddress = *serverAddr
-	cfg.DatabaseURI = *dbURI
+	cfg.Database.DatabaseURI = *dbURI
 	cfg.AccrualConn.ServerAddress = *accrualAddr
 	cfg.Logger.Level = *logLevel
 	return nil
@@ -74,7 +78,7 @@ func (cfg *ApplicationConfig) parseFlags() error {
 func GetConfig() (ApplicationConfig, error) {
 	cfg := ApplicationConfig{
 		ServerAddress: ServerAddressDefault,
-		DatabaseURI:   DatabaseURIDefault,
+
 		Logger: LoggerConfig{
 			Level: LogLevelDefault,
 		},
@@ -91,6 +95,9 @@ func GetConfig() (ApplicationConfig, error) {
 		WorkerPool: WorkerPoolConfig{
 			WorkersCount: WorkersCountDefault,
 			TasksSize:    TasksSizeDefault,
+		},
+		Database: DatabaseConfig{
+			DatabaseURI: DatabaseURIDefault,
 		},
 	}
 	if err := cfg.parseFlags(); err != nil {

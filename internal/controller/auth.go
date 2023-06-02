@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"context"
+	"fmt"
 	"time"
 
 	"github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
@@ -11,15 +13,15 @@ import (
 )
 
 type AuthController struct {
-	db            *database.PG
+	db            database.Database
 	tokenLifeTime time.Duration
 }
 
-func GetAuthController(db *database.PG, cfg config.AuthConfig) *AuthController {
+func GetAuthController(db database.Database, cfg config.AuthConfig) *AuthController {
 	return &AuthController{db: db, tokenLifeTime: cfg.TokenLifeTime}
 }
 
-func (c AuthController) CreateUser(userInput model.UserInput) (user *model.User, err error) {
+func (c AuthController) CreateUser(ctx context.Context, userInput model.UserInput) (user *model.User, err error) {
 	hashPassword, err := utils.HashPassword(userInput.Password)
 	if err != nil {
 		return
@@ -31,12 +33,14 @@ func (c AuthController) CreateUser(userInput model.UserInput) (user *model.User,
 		Withdrawn:      0,
 		CreatedAt:      time.Now(),
 	}
-	err = c.db.CreateNewUser(user)
+	err = c.db.CreateNewUser(ctx, user)
 	return
 }
 
-func (c AuthController) GetUser(userInput model.UserInput) (user *model.User, err error) {
-	user, err = c.db.GetUserByLogin(userInput.Login)
+func (c AuthController) GetUser(ctx context.Context, userInput model.UserInput) (user *model.User, err error) {
+	fmt.Println(userInput)
+	user, err = c.db.GetUserByLogin(ctx, userInput.Login)
+	fmt.Println(user)
 	if err != nil {
 		return
 	}
@@ -48,7 +52,7 @@ func (c AuthController) GetUser(userInput model.UserInput) (user *model.User, er
 	return
 }
 
-func (c AuthController) CreateSession(user *model.User) (session *model.Session, err error) {
+func (c AuthController) CreateSession(ctx context.Context, user *model.User) (session *model.Session, err error) {
 	token := utils.GenerateToken()
 	created := time.Now()
 	expired := created.Add(c.tokenLifeTime)
@@ -58,10 +62,10 @@ func (c AuthController) CreateSession(user *model.User) (session *model.Session,
 		CreatedAt: created,
 		ExpireAt:  expired,
 	}
-	err = c.db.CreateNewSession(session)
+	err = c.db.CreateNewSession(ctx, session)
 	return
 }
 
-func (c AuthController) GetUserByToken(token string) (user *model.User, err error) {
-	return c.db.GetUserByToken(token)
+func (c AuthController) GetUserByToken(ctx context.Context, token string) (user *model.User, err error) {
+	return c.db.GetUserByToken(ctx, token)
 }

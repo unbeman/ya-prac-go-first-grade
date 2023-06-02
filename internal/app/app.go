@@ -22,11 +22,11 @@ type application struct {
 }
 
 func GetApplication(cfg config.ApplicationConfig) (*application, error) { //TODO: sync once
-	db, err := database.GetDatabase(cfg.DatabaseURI) //todo: interface
+	db, err := database.GetDatabase(cfg.Database)
 	if err != nil {
 		return nil, err
 	}
-	accConn := connection.NewAccrualConnection(cfg.AccrualConn)
+	accConn := connection.GetAccrualConnector(cfg.AccrualConn)
 	authControl := controller.GetAuthController(db, cfg.Auth)
 	workerPool := worker.NewWorkersPool(cfg.WorkerPool)
 	pointsControl := controller.GetPointsController(db, accConn, workerPool)
