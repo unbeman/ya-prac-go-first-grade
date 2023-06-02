@@ -15,7 +15,7 @@ type Database interface {
 	CreateNewSession(ctx context.Context, session *model.Session) error
 	GetOrderByNumber(ctx context.Context, number string) (*model.Order, error)
 	CreateNewUserOrder(ctx context.Context, userID uint, number string) error
-	UpdateUserBalanceAndOrder(order *model.Order) error
+	UpdateUserBalanceAndOrder(order *model.Order, accrualInfo model.OrderAccrualInfo) error
 	GetUserOrders(ctx context.Context, userID uint) ([]model.Order, error)
 	GetNotReadyOrders(ctx context.Context, userID uint) ([]model.Order, error)
 	CreateWithdraw(ctx context.Context, user *model.User, withdrawInfo model.WithdrawnInput) error

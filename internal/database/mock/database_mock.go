@@ -197,15 +197,15 @@ func (mr *MockDatabaseMockRecorder) GetUserWithdrawals(arg0, arg1 interface{}) *
 }
 
 // UpdateUserBalanceAndOrder mocks base method.
-func (m *MockDatabase) UpdateUserBalanceAndOrder(arg0 *model.Order) error {
+func (m *MockDatabase) UpdateUserBalanceAndOrder(arg0 *model.Order, arg1 model.OrderAccrualInfo) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateUserBalanceAndOrder", arg0)
+	ret := m.ctrl.Call(m, "UpdateUserBalanceAndOrder", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateUserBalanceAndOrder indicates an expected call of UpdateUserBalanceAndOrder.
-func (mr *MockDatabaseMockRecorder) UpdateUserBalanceAndOrder(arg0 interface{}) *gomock.Call {
+func (mr *MockDatabaseMockRecorder) UpdateUserBalanceAndOrder(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserBalanceAndOrder", reflect.TypeOf((*MockDatabase)(nil).UpdateUserBalanceAndOrder), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserBalanceAndOrder", reflect.TypeOf((*MockDatabase)(nil).UpdateUserBalanceAndOrder), arg0, arg1)
 }

@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/apperrors"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/config"
 	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
@@ -142,21 +144,35 @@ func (db *pg) CreateNewUserOrder(ctx context.Context, userID uint, number string
 	return nil
 }
 
-func (db *pg) UpdateUserBalanceAndOrder(order *model.Order) error {
-	err := db.conn.Transaction(func(tx *gorm.DB) (txErr error) {
-		result := tx.Save(order)
+func (db *pg) UpdateUserBalanceAndOrder(order *model.Order, accrualInfo model.OrderAccrualInfo) error {
+	err := db.conn.Transaction(func(tx *gorm.DB) error {
+		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(order, order.ID)
+		if result.Error != nil {
+			return result.Error
+		}
+		if order.Status == accrualInfo.Status {
+			log.Infof("nothing for update for order (%v)", order)
+			return nil
+		}
+		order.Status = accrualInfo.Status
+		order.Accrual = accrualInfo.Accrual
+		result = tx.Save(order)
 		if result.Error != nil {
 			return result.Error
 		}
 		if order.Status == model.StatusProcessed {
 			user := &model.User{}
-			user.ID = order.UserID
-			result = tx.Model(user).Update("current_balance", gorm.Expr("current_balance + ?", order.Accrual))
+			result = tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(user, order.UserID)
+			if result.Error != nil {
+				return nil
+			}
+			user.CurrentBalance += order.Accrual
+			result = tx.Save(user)
 			if result.Error != nil {
 				return result.Error
 			}
 		}
-		return
+		return nil
 	})
 
 	if err != nil {
@@ -200,21 +216,29 @@ func (db *pg) GetNotReadyOrders(ctx context.Context, userID uint) (orders []mode
 
 func (db *pg) CreateWithdraw(ctx context.Context, user *model.User, withdrawInfo model.WithdrawnInput) error {
 	err := db.conn.WithContext(ctx).Transaction(func(tx *gorm.DB) (txErr error) {
-		result := tx.Model(&user).Where(
-			"current_balance >= ?", withdrawInfo.Sum,
-		).Updates(map[string]interface{}{
-			"current_balance": gorm.Expr("current_balance - ?", withdrawInfo.Sum),
-			"withdrawn":       gorm.Expr("withdrawn + ?", withdrawInfo.Sum),
-		})
+		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("current_balance >= ?", withdrawInfo.Sum).
+			First(user, user.ID)
 		txErr = result.Error
 		if errors.Is(txErr, gorm.ErrRecordNotFound) {
 			return apperrors.ErrNotEnoughPoints
 		}
-		withdraw := model.Withdrawal{Order: withdrawInfo.OrderNumber, Sum: withdrawInfo.Sum, UserID: user.ID}
+		if txErr != nil {
+			return txErr
+		}
+		user.CurrentBalance -= withdrawInfo.Sum
+		user.Withdrawn += withdrawInfo.Sum
+		if txErr = tx.Save(user).Error; txErr != nil {
+			return
+		}
+		withdraw := model.Withdrawal{
+			Order:  withdrawInfo.OrderNumber,
+			Sum:    withdrawInfo.Sum,
+			UserID: user.ID,
+		}
 		if txErr = tx.Create(&withdraw).Error; txErr != nil {
 			return
 		}
-
 		return
 	})
 	if errors.Is(err, apperrors.ErrNotEnoughPoints) {

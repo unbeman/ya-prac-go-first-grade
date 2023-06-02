@@ -53,11 +53,7 @@ func (c PointsController) updateUserOrder(order model.Order) (model.Order, error
 		return order, err
 	}
 	log.Debug("updateUserOrder orderAccrualInfo: ", orderAccrualInfo)
-	if order.Status != orderAccrualInfo.Status {
-		order.Status = orderAccrualInfo.Status
-		order.Accrual = orderAccrualInfo.Accrual
-		err = c.db.UpdateUserBalanceAndOrder(&order)
-	}
+	err = c.db.UpdateUserBalanceAndOrder(&order, orderAccrualInfo)
 	return order, err
 }
 
