@@ -58,7 +58,7 @@ func (ac *AccrualConnection) GetOrderAccrual(ctx context.Context, orderNumber st
 	if err != nil {
 		return
 	}
-
+	defer response.Body.Close()
 	log.Debugf("got HTTP status from (%v): %v", request.URL, response.StatusCode)
 	orderInfo, err = utils.GetAccrualInfoFromResponse(response)
 	if err != nil {

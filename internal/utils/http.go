@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -34,6 +35,7 @@ func GetRequestLimit(response *http.Response) (reqLimit int, err error) {
 	}
 	reqLimit = int(reqCount64)
 	response.Body.Close()
+	response.Body = io.NopCloser(bytes.NewBuffer(data))
 	return reqLimit, nil
 }
 
