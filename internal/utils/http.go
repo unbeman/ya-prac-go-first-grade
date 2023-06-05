@@ -1,11 +1,9 @@
 package utils
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -18,11 +16,7 @@ import (
 const LimitTextWordsCount = 8
 const RequestLimitIndex = 3
 
-func GetRequestLimit(response *http.Response) (reqLimit int, err error) {
-	data, err := io.ReadAll(response.Body)
-	if err != nil {
-		return reqLimit, err
-	}
+func GetRequestLimit(data []byte) (reqLimit int, err error) {
 	//No more than N requests per minute allowed
 	answer := strings.Split(string(data), " ") //todo reqexp?
 	if len(answer) != LimitTextWordsCount {
@@ -34,8 +28,6 @@ func GetRequestLimit(response *http.Response) (reqLimit int, err error) {
 		return reqLimit, err
 	}
 	reqLimit = int(reqCount64)
-	response.Body.Close()
-	response.Body = io.NopCloser(bytes.NewBuffer(data))
 	return reqLimit, nil
 }
 
@@ -54,10 +46,8 @@ func FormatOrderAccrualURL(address, orderNumber string) string {
 	return fmt.Sprintf("%v/api/orders/%v", address, orderNumber)
 }
 
-func GetAccrualInfoFromResponse(response *http.Response) (model.OrderAccrualInfo, error) {
-	defer response.Body.Close()
+func GetAccrualInfoFromData(data []byte) (model.OrderAccrualInfo, error) {
 	info := model.OrderAccrualInfo{}
-	jD := json.NewDecoder(response.Body)
-	err := jD.Decode(&info)
+	err := json.Unmarshal(data, &info)
 	return info, err
 }

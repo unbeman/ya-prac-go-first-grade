@@ -2,6 +2,7 @@ package connection
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"time"
 
@@ -46,7 +47,6 @@ func NewAccrualConnection(cfg config.AccrualConnConfig) *AccrualConnection {
 }
 
 func (ac *AccrualConnection) GetOrderAccrual(ctx context.Context, orderNumber string) (orderInfo model.OrderAccrualInfo, err error) {
-	ac.rateLimiter.Wait(ctx)
 	url := utils.FormatOrderAccrualURL(ac.address, orderNumber)
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -54,24 +54,26 @@ func (ac *AccrualConnection) GetOrderAccrual(ctx context.Context, orderNumber st
 		return
 	}
 	request.Header.Set("Content-Type", "text/plain")
-	response, err := ac.processGetOrderAccrualWithRetries(request)
-	if err != nil {
-		return
-	}
-	defer response.Body.Close()
-	log.Debugf("got HTTP status from (%v): %v", request.URL, response.StatusCode)
-	orderInfo, err = utils.GetAccrualInfoFromResponse(response)
-	if err != nil {
-		return
-	}
-	return
+	return ac.processGetOrderAccrualWithRetries(ctx, request)
 }
 
-func (ac *AccrualConnection) processGetOrderAccrualWithRetries(request *http.Request) (response *http.Response, err error) {
+func (ac *AccrualConnection) processGetOrderAccrualWithRetries(ctx context.Context, request *http.Request) (orderInfo model.OrderAccrualInfo, err error) {
+	var data []byte
 	for try := 0; try < ac.maxRetryCount; try++ {
+		ac.rateLimiter.Wait(ctx)
 		log.Debugf("making GET request to (%v)", request.URL)
-		response, err = ac.client.Do(request)
-		isMustRetry, duration, err := ac.mustRetry(response, err)
+		response, err := ac.client.Do(request)
+		if err != nil {
+			log.Errorf("got error during request: %v", err)
+			time.Sleep(ac.retryAfterTime)
+			response.Body.Close()
+			continue
+		}
+		
+		data, err = io.ReadAll(response.Body)
+		response.Body.Close()
+
+		isMustRetry, duration, err := ac.mustRetry(data, response.StatusCode, response.Header)
 		if err != nil {
 			log.Errorf("error occured while processing request to (%v): %v", request.URL, err)
 		}
@@ -81,7 +83,12 @@ func (ac *AccrualConnection) processGetOrderAccrualWithRetries(request *http.Req
 		log.Debugf("wait (%v) for retrying request to (%v)", duration, request.URL)
 		time.Sleep(duration)
 	}
-	return response, err
+
+	orderInfo, err = utils.GetAccrualInfoFromData(data)
+	if err != nil {
+		return
+	}
+	return orderInfo, err
 }
 
 func (ac *AccrualConnection) updateRequestLimit(limit int) {
@@ -91,25 +98,22 @@ func (ac *AccrualConnection) updateRequestLimit(limit int) {
 }
 
 func (ac *AccrualConnection) mustRetry(
-	response *http.Response,
-	requestErr error,
+	data []byte,
+	statusCode int,
+	header http.Header,
 ) (isRetryNeed bool, waitDuration time.Duration, err error) {
-	if requestErr != nil {
-		log.Errorf("got error during request: %v", requestErr)
-		return true, ac.retryAfterTime, requestErr
-	}
-	switch response.StatusCode {
+	switch statusCode {
 	case http.StatusOK:
 		return false, 0, nil
 	case http.StatusNoContent:
 		return false, 0, apperrors.ErrNoAccrualInfo
 	case http.StatusTooManyRequests:
-		reqLimit, err := utils.GetRequestLimit(response)
+		reqLimit, err := utils.GetRequestLimit(data)
 		if err != nil {
 			return false, 0, err
 		}
 		ac.updateRequestLimit(reqLimit)
-		duration, err := utils.GetRetryWaitDuration(response.Header)
+		duration, err := utils.GetRetryWaitDuration(header)
 		if err != nil {
 			return false, 0, err
 		}
@@ -117,7 +121,7 @@ func (ac *AccrualConnection) mustRetry(
 	case http.StatusInternalServerError:
 		return true, ac.retryAfterTime, apperrors.ErrAccrualServiceUnavailable
 	default:
-		log.Errorf("unexpected status code: %v", response.StatusCode)
+		log.Errorf("unexpected status code: %v", statusCode)
 		return false, 0, apperrors.ErrAccrualConnection
 	}
 }
