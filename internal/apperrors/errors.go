@@ -16,20 +16,3 @@ var (
 	ErrAccrualServiceUnavailable = errors.New("accrual service is unavailable")
 	ErrAccrualConnection         = errors.New("accrual connection error")
 )
-
-//type RetryError struct {
-//	err      error
-//	duration time.Duration
-//}
-//
-//func NewRetryError(duration time.Duration) *RetryError {
-//	return &RetryError{err: ErrMustRetry, duration: duration}
-//}
-//
-//func (re *RetryError) Error() string {
-//	return fmt.Sprintf("retry error: %v", re.err)
-//}
-//
-//func (re RetryError) GetDuration() time.Duration {
-//	return re.duration
-//}
