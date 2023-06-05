@@ -2,7 +2,6 @@ package connection
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"time"
 
@@ -61,7 +60,7 @@ func (ac *AccrualConnection) GetOrderAccrual(ctx context.Context, orderNumber st
 	}
 
 	log.Debugf("got HTTP status from (%v): %v", request.URL, response.StatusCode)
-	orderInfo, err = decodeAccrualInfo(response)
+	orderInfo, err = utils.GetAccrualInfoFromResponse(response)
 	if err != nil {
 		return
 	}
@@ -83,14 +82,6 @@ func (ac *AccrualConnection) processGetOrderAccrualWithRetries(request *http.Req
 		time.Sleep(duration)
 	}
 	return response, err
-}
-
-func decodeAccrualInfo(response *http.Response) (model.OrderAccrualInfo, error) {
-	defer response.Body.Close()
-	info := model.OrderAccrualInfo{}
-	jD := json.NewDecoder(response.Body)
-	err := jD.Decode(&info)
-	return info, err
 }
 
 func (ac *AccrualConnection) updateRequestLimit(limit int) {

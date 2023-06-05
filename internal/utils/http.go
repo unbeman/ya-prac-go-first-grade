@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
 )
 
 const LimitTextWordsCount = 8
@@ -48,4 +50,12 @@ func GetRetryWaitDuration(header http.Header) (duration time.Duration, err error
 
 func FormatOrderAccrualURL(address, orderNumber string) string {
 	return fmt.Sprintf("%v/api/orders/%v", address, orderNumber)
+}
+
+func GetAccrualInfoFromResponse(response *http.Response) (model.OrderAccrualInfo, error) {
+	defer response.Body.Close()
+	info := model.OrderAccrualInfo{}
+	jD := json.NewDecoder(response.Body)
+	err := jD.Decode(&info)
+	return info, err
 }
