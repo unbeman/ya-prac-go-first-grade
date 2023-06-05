@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"time"
 
 	logger "github.com/chi-middleware/logrus-logger"
 	"github.com/go-chi/chi/v5"
@@ -21,21 +22,23 @@ import (
 
 type AppHandler struct {
 	*chi.Mux
-	authControl   *controller.AuthController
-	pointsControl *controller.PointsController
+	authControl            *controller.AuthController
+	pointsControl          *controller.PointsController
+	incomingRequestTimeout time.Duration
 }
 
-func GetAppHandler(authControl *controller.AuthController, pointsControl *controller.PointsController) *AppHandler {
+func GetAppHandler(timeout time.Duration, authControl *controller.AuthController, pointsControl *controller.PointsController) *AppHandler {
 	h := &AppHandler{
-		Mux:           chi.NewMux(),
-		authControl:   authControl,
-		pointsControl: pointsControl,
+		Mux:                    chi.NewMux(),
+		authControl:            authControl,
+		pointsControl:          pointsControl,
+		incomingRequestTimeout: timeout,
 	}
 	h.Use(middleware.RequestID)
 	h.Use(middleware.RealIP)
 	h.Use(logger.Logger("router", log.New()))
 	h.Use(middleware.Recoverer)
-
+	h.Use(middleware.Timeout(h.incomingRequestTimeout))
 	h.Route("/api/user", func(router chi.Router) {
 
 		router.Post("/register", h.Register)

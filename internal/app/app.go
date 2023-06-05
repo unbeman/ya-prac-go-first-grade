@@ -30,7 +30,7 @@ func GetApplication(cfg config.ApplicationConfig) (*application, error) { //TODO
 	authControl := controller.GetAuthController(db, cfg.Auth)
 	workerPool := worker.NewWorkersPool(cfg.WorkerPool)
 	pointsControl := controller.GetPointsController(db, accConn, workerPool)
-	hndlr := handler.GetAppHandler(authControl, pointsControl)
+	hndlr := handler.GetAppHandler(cfg.IncomingRequestTimeout, authControl, pointsControl)
 	return &application{
 		server:        http.Server{Addr: cfg.ServerAddress, Handler: hndlr},
 		pointsControl: pointsControl,
@@ -57,6 +57,6 @@ func (a *application) Run() {
 }
 
 func (a *application) Shutdown(ctx context.Context) {
-	go a.server.Shutdown(ctx)
+	a.server.Shutdown(ctx)
 	a.workerPool.Shutdown()
 }

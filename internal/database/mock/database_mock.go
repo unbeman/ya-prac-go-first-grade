@@ -91,19 +91,19 @@ func (mr *MockDatabaseMockRecorder) CreateWithdraw(arg0, arg1, arg2 interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateWithdraw", reflect.TypeOf((*MockDatabase)(nil).CreateWithdraw), arg0, arg1, arg2)
 }
 
-// GetNotReadyOrders mocks base method.
-func (m *MockDatabase) GetNotReadyOrders(arg0 context.Context, arg1 uint) ([]model.Order, error) {
+// GetNotReadyUserOrders mocks base method.
+func (m *MockDatabase) GetNotReadyUserOrders(arg0 context.Context, arg1 uint) ([]model.Order, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetNotReadyOrders", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetNotReadyUserOrders", arg0, arg1)
 	ret0, _ := ret[0].([]model.Order)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetNotReadyOrders indicates an expected call of GetNotReadyOrders.
-func (mr *MockDatabaseMockRecorder) GetNotReadyOrders(arg0, arg1 interface{}) *gomock.Call {
+// GetNotReadyUserOrders indicates an expected call of GetNotReadyUserOrders.
+func (mr *MockDatabaseMockRecorder) GetNotReadyUserOrders(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNotReadyOrders", reflect.TypeOf((*MockDatabase)(nil).GetNotReadyOrders), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNotReadyUserOrders", reflect.TypeOf((*MockDatabase)(nil).GetNotReadyUserOrders), arg0, arg1)
 }
 
 // GetOrderByNumber mocks base method.

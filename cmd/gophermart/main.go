@@ -14,11 +14,6 @@ import (
 )
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer func() {
-		cancel()
-	}()
-
 	cfg, err := config.GetConfig()
 	if err != nil {
 		log.Error("Can't get config:", err)
@@ -47,10 +42,8 @@ func main() {
 
 		sig := <-exit
 		log.Infof("Got signal '%v'", sig)
-		appl.Shutdown(ctx)
-
+		appl.Shutdown(context.Background())
 	}()
 
 	appl.Run()
-	//appl.Shutdown(ctx)
 }

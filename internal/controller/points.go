@@ -47,8 +47,8 @@ func (c PointsController) AddUserOrder(ctx context.Context, user *model.User, or
 	return false, nil
 }
 
-func (c PointsController) updateUserOrder(order model.Order) (model.Order, error) {
-	orderAccrualInfo, err := c.accrualConnection.GetOrderAccrual(context.TODO(), order.Number)
+func (c PointsController) updateUserOrder(ctx context.Context, order model.Order) (model.Order, error) {
+	orderAccrualInfo, err := c.accrualConnection.GetOrderAccrual(ctx, order.Number)
 	if err != nil {
 		return order, err
 	}
@@ -58,7 +58,7 @@ func (c PointsController) updateUserOrder(order model.Order) (model.Order, error
 }
 
 func (c PointsController) UpdateUserOrders(ctx context.Context, user *model.User) error {
-	notReadyOrders, err := c.db.GetNotReadyOrders(ctx, user.ID)
+	notReadyOrders, err := c.db.GetNotReadyUserOrders(ctx, user.ID)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -66,7 +66,7 @@ func (c PointsController) UpdateUserOrders(ctx context.Context, user *model.User
 
 	taskOutput := make(chan worker.TaskOutput, len(notReadyOrders))
 	for _, order := range notReadyOrders {
-		updateOrder := &worker.Task{Order: order, DoFunc: c.updateUserOrder, OutputErr: taskOutput}
+		updateOrder := worker.NewAccrualTask(ctx, order, c.updateUserOrder, taskOutput)
 		c.wp.AddTask(updateOrder)
 	}
 	for idx := 0; idx < len(notReadyOrders); idx++ {

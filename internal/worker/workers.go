@@ -4,31 +4,13 @@ import (
 	"sync"
 
 	log "github.com/sirupsen/logrus"
+
 	"github.com/unbeman/ya-prac-go-first-grade/internal/config"
-	"github.com/unbeman/ya-prac-go-first-grade/internal/model"
 )
-
-type TaskOutput struct {
-	Err error
-}
-
-type Task struct {
-	Order     model.Order
-	DoFunc    func(model.Order) (model.Order, error)
-	OutputErr chan TaskOutput
-}
-
-func (t *Task) Do() {
-	_, err := t.DoFunc(t.Order)
-	if err != nil {
-		log.Error(err)
-	}
-	t.OutputErr <- TaskOutput{Err: err}
-}
 
 type WorkersPool struct {
 	wokersCount int
-	tasks       chan *Task
+	tasks       chan TaskInterface
 	tasksSize   int
 	waitGroup   sync.WaitGroup
 }
@@ -36,7 +18,7 @@ type WorkersPool struct {
 func NewWorkersPool(cfg config.WorkerPoolConfig) *WorkersPool {
 	return &WorkersPool{
 		wokersCount: cfg.WorkersCount,
-		tasks:       make(chan *Task, cfg.TasksSize),
+		tasks:       make(chan TaskInterface, cfg.TasksSize),
 	}
 }
 
@@ -44,10 +26,11 @@ func (wp *WorkersPool) Run() {
 	log.Infof("starting worker pool %d workers", wp.wokersCount)
 	for idx := 0; idx < wp.wokersCount; idx++ {
 		wp.waitGroup.Add(1)
-		go func(idx int, tasks chan *Task) {
-			log.Infof("worker %d started", idx)
+		go func(idx int, tasks chan TaskInterface) {
 			defer wp.waitGroup.Done()
+			log.Infof("worker %d started", idx)
 			for task := range tasks {
+				log.Infof("worker %d: starting task", idx)
 				task.Do()
 			}
 			log.Infof("worker %d: finished", idx)
@@ -56,7 +39,7 @@ func (wp *WorkersPool) Run() {
 	wp.waitGroup.Wait()
 }
 
-func (wp *WorkersPool) AddTask(task *Task) {
+func (wp *WorkersPool) AddTask(task TaskInterface) {
 	wp.tasks <- task
 }
 

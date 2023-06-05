@@ -195,9 +195,9 @@ func (db *pg) GetUserOrders(ctx context.Context, userID uint) (orders []model.Or
 	return
 }
 
-func (db *pg) GetNotReadyOrders(ctx context.Context, userID uint) (orders []model.Order, err error) {
+func (db *pg) GetNotReadyUserOrders(ctx context.Context, userID uint) (orders []model.Order, err error) {
 	result := db.conn.WithContext(ctx).Find(&orders,
-		"user_id = ? AND status != ? AND status != ?",
+		"user_id = ? AND status NOT IN (?, ?)",
 		userID,
 		model.StatusProcessed,
 		model.StatusInvalid,

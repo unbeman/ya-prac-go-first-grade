@@ -8,17 +8,20 @@ import (
 )
 
 const (
-	ServerAddressDefault        = "127.0.0.1:8090"
-	DatabaseURIDefault          = "postgresql://postgres:1211@localhost:5432/fgrad"
-	AccrualServerAddressDefault = "http://127.0.0.1:8080"
-	LogLevelDefault             = "info"
-	TokenLifeTimeDefault        = 1 * time.Hour
-	ClientTimeoutDefault        = 5 * time.Second
-	RequestTimeoutDefault       = 2 * time.Second
-	RateLimitDefault            = 1 * time.Minute
-	RateTokensNumber            = 300
-	WorkersCountDefault         = 10
-	TasksSizeDefault            = 30
+	ServerAddressDefault          = "127.0.0.1:8090"
+	IncomingRequestTimeoutDefault = 1 * time.Second
+	DatabaseURIDefault            = "postgresql://postgres:1211@localhost:5432/fgrad"
+	AccrualServerAddressDefault   = "http://127.0.0.1:8080"
+	LogLevelDefault               = "debug"
+	TokenLifeTimeDefault          = 1 * time.Hour
+	ClientTimeoutDefault          = 5 * time.Second
+	RequestTimeoutDefault         = 2 * time.Second
+	RateLimitDefault              = 1 * time.Minute
+	RateTokensNumberDefault       = 300
+	MaxRetryCountDefault          = 3
+	RetryAfterTimeDefault         = 1 * time.Second
+	WorkersCountDefault           = 10
+	TasksSizeDefault              = 30
 )
 
 type LoggerConfig struct {
@@ -30,20 +33,23 @@ type AuthConfig struct {
 }
 
 type AccrualConnConfig struct {
-	ServerAddress    string `env:"ACCRUAL_SYSTEM_ADDRESS"`
-	ClientTimeout    time.Duration
-	RequestTimeout   time.Duration
-	RateLimit        time.Duration
-	RateTokensNumber int
+	ServerAddress   string `env:"ACCRUAL_SYSTEM_ADDRESS"`
+	ClientTimeout   time.Duration
+	RequestTimeout  time.Duration
+	RateLimit       time.Duration
+	RateTokensCount int
+	MaxRetryCount   int
+	RetryAfterTime  time.Duration
 }
 
 type ApplicationConfig struct {
-	ServerAddress string `env:"RUN_ADDRESS"`
-	Database      DatabaseConfig
-	Logger        LoggerConfig
-	Auth          AuthConfig
-	AccrualConn   AccrualConnConfig
-	WorkerPool    WorkerPoolConfig
+	ServerAddress          string `env:"RUN_ADDRESS"`
+	IncomingRequestTimeout time.Duration
+	Database               DatabaseConfig
+	Logger                 LoggerConfig
+	Auth                   AuthConfig
+	AccrualConn            AccrualConnConfig
+	WorkerPool             WorkerPoolConfig
 }
 
 type WorkerPoolConfig struct {
@@ -77,7 +83,8 @@ func (cfg *ApplicationConfig) parseFlags() error {
 
 func GetConfig() (ApplicationConfig, error) {
 	cfg := ApplicationConfig{
-		ServerAddress: ServerAddressDefault,
+		ServerAddress:          ServerAddressDefault,
+		IncomingRequestTimeout: IncomingRequestTimeoutDefault,
 
 		Logger: LoggerConfig{
 			Level: LogLevelDefault,
@@ -86,11 +93,13 @@ func GetConfig() (ApplicationConfig, error) {
 			TokenLifeTime: TokenLifeTimeDefault,
 		},
 		AccrualConn: AccrualConnConfig{
-			ServerAddress:    AccrualServerAddressDefault,
-			ClientTimeout:    ClientTimeoutDefault,
-			RequestTimeout:   RequestTimeoutDefault,
-			RateLimit:        RateLimitDefault,
-			RateTokensNumber: RateTokensNumber,
+			ServerAddress:   AccrualServerAddressDefault,
+			ClientTimeout:   ClientTimeoutDefault,
+			RequestTimeout:  RequestTimeoutDefault,
+			RateLimit:       RateLimitDefault,
+			RateTokensCount: RateTokensNumberDefault,
+			MaxRetryCount:   MaxRetryCountDefault,
+			RetryAfterTime:  RetryAfterTimeDefault,
 		},
 		WorkerPool: WorkerPoolConfig{
 			WorkersCount: WorkersCountDefault,
