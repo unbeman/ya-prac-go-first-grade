@@ -12,10 +12,10 @@ const (
 	IncomingRequestTimeoutDefault = 10 * time.Second
 	DatabaseURIDefault            = "postgresql://postgres:1211@localhost:5432/fgrad"
 	AccrualServerAddressDefault   = "http://127.0.0.1:8080"
-	LogLevelDefault               = "debug"
+	LogLevelDefault               = "info"
 	TokenLifeTimeDefault          = 1 * time.Hour
 	ClientTimeoutDefault          = 5 * time.Second
-	RequestTimeoutDefault         = 2 * time.Second
+	RequestTimeoutDefault         = 3 * time.Second
 	RateLimitDefault              = 1 * time.Minute
 	RateTokensNumberDefault       = 300
 	MaxRetryCountDefault          = 3
