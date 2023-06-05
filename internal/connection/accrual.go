@@ -54,14 +54,17 @@ func (ac *AccrualConnection) GetOrderAccrual(ctx context.Context, orderNumber st
 		return
 	}
 	request.Header.Set("Content-Type", "text/plain")
-	return ac.processGetOrderAccrualWithRetries(ctx, request)
+	data, err := ac.processGetOrderAccrualWithRetries(ctx, request)
+	if err != nil {
+		return
+	}
+	return utils.GetAccrualInfoFromData(data)
 }
 
 func (ac *AccrualConnection) processGetOrderAccrualWithRetries(
 	ctx context.Context,
 	request *http.Request,
-) (orderInfo model.OrderAccrualInfo, err error) {
-	var data []byte
+) (data []byte, err error) {
 	for try := 0; try < ac.maxRetryCount; try++ {
 		ac.rateLimiter.Wait(ctx)
 		response, reqErr := ac.client.Do(request)
@@ -81,8 +84,9 @@ func (ac *AccrualConnection) processGetOrderAccrualWithRetries(
 		}
 		response.Body.Close()
 
-		isMustRetry, duration, err := ac.mustRetry(data, response.StatusCode, response.Header)
-		if err != nil {
+		isMustRetry, duration, retryErr := ac.mustRetry(data, response.StatusCode, response.Header)
+		if retryErr != nil {
+			err = retryErr
 			log.Errorf("error occured while processing request to (%v): %v", request.URL, err)
 		}
 		if !isMustRetry {
@@ -91,12 +95,7 @@ func (ac *AccrualConnection) processGetOrderAccrualWithRetries(
 		log.Debugf("wait (%v) for retrying request to (%v)", duration, request.URL)
 		time.Sleep(duration)
 	}
-
-	orderInfo, err = utils.GetAccrualInfoFromData(data)
-	if err != nil {
-		return
-	}
-	return orderInfo, err
+	return
 }
 
 func (ac *AccrualConnection) updateRequestLimit(limit int) {
