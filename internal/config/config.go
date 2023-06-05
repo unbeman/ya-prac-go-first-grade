@@ -9,7 +9,7 @@ import (
 
 const (
 	ServerAddressDefault          = "127.0.0.1:8090"
-	IncomingRequestTimeoutDefault = 1 * time.Second
+	IncomingRequestTimeoutDefault = 10 * time.Second
 	DatabaseURIDefault            = "postgresql://postgres:1211@localhost:5432/fgrad"
 	AccrualServerAddressDefault   = "http://127.0.0.1:8080"
 	LogLevelDefault               = "debug"
