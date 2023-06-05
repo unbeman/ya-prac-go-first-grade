@@ -68,8 +68,8 @@ func (ac *AccrualConnection) processGetOrderAccrualWithRetries(
 		if reqErr != nil {
 			err = reqErr
 			log.Errorf("got error during request: %v", err)
-			time.Sleep(ac.retryAfterTime)
 			response.Body.Close()
+			time.Sleep(ac.retryAfterTime)
 			continue
 		}
 
