@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -22,7 +23,8 @@ func GetRequestLimit(response *http.Response) (reqLimit int, err error) {
 	//No more than N requests per minute allowed
 	answer := strings.Split(string(data), " ") //todo reqexp?
 	if len(answer) != LimitTextWordsCount {
-		err = fmt.Errorf("invalid words count")
+		err = errors.New("invalid words count")
+		return
 	}
 	reqCount64, err := strconv.ParseInt(answer[RequestLimitIndex], 10, 0)
 	if err != nil {
