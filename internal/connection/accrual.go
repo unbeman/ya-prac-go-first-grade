@@ -57,20 +57,28 @@ func (ac *AccrualConnection) GetOrderAccrual(ctx context.Context, orderNumber st
 	return ac.processGetOrderAccrualWithRetries(ctx, request)
 }
 
-func (ac *AccrualConnection) processGetOrderAccrualWithRetries(ctx context.Context, request *http.Request) (orderInfo model.OrderAccrualInfo, err error) {
+func (ac *AccrualConnection) processGetOrderAccrualWithRetries(
+	ctx context.Context,
+	request *http.Request,
+) (orderInfo model.OrderAccrualInfo, err error) {
 	var data []byte
 	for try := 0; try < ac.maxRetryCount; try++ {
 		ac.rateLimiter.Wait(ctx)
-		log.Debugf("making GET request to (%v)", request.URL)
-		response, err := ac.client.Do(request)
-		if err != nil {
+		response, reqErr := ac.client.Do(request)
+		if reqErr != nil {
+			err = reqErr
 			log.Errorf("got error during request: %v", err)
 			time.Sleep(ac.retryAfterTime)
 			response.Body.Close()
 			continue
 		}
-		
+
 		data, err = io.ReadAll(response.Body)
+		if err != nil {
+			log.Error(err)
+			response.Body.Close()
+			return
+		}
 		response.Body.Close()
 
 		isMustRetry, duration, err := ac.mustRetry(data, response.StatusCode, response.Header)
